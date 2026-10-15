@@ -1,0 +1,6 @@
+@ARIMMS.Api_HostAddress = http://localhost:5188
+
+GET {{ARIMMS.Api_HostAddress}}
+Accept: application/json
+
+###
