@@ -1,118 +1,253 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AR-IMMS
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Giới thiệu
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+**AR-IMMS — AR-Integrated Infrastructure Monitoring and
+Maintenance System** là hệ thống giám sát và bảo trì cơ sở
+hạ tầng tích hợp thực tế tăng cường.
 
-## Description
+Hệ thống liên kết thiết bị vật lý với telemetry, cảnh báo
+và quy trình bảo trì. Web Portal hỗ trợ quản lý tập trung,
+còn ứng dụng Mobile AR giúp kỹ thuật viên nhận diện
+và tra cứu thông tin thiết bị ngay tại hiện trường.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Dự án được triển khai và đánh giá trên Mini Data Center Testbed.
 
-## Project setup
+## Bài toán cần giải quyết
 
-```bash
-$ npm install
+- Dữ liệu giám sát tách biệt với vị trí thiết bị vật lý.
+- Kỹ thuật viên mất thời gian đối chiếu để tìm đúng máy chủ.
+- Telemetry, log và lịch sử bảo trì chưa được liên kết thuận tiện.
+- Khó theo dõi xuyên suốt từ cảnh báo đến kết quả bảo trì.
+
+## Người sử dụng
+
+| Vai trò | Trách nhiệm chính |
+|---|---|
+| Administrator | Quản lý tài khoản, phân quyền, cấu hình, sức khỏe hệ thống và audit |
+| Operator | Quản lý hạ tầng, giám sát, xử lý cảnh báo, phân công và phê duyệt đóng ticket |
+| Technician | Nhận ticket, quét AR, kiểm tra thiết bị và cập nhật kết quả bảo trì |
+
+Hệ thống giám sát tự động thực hiện thu thập telemetry,
+phát hiện bất thường, cập nhật cảnh báo và xử lý kết nối.
+
+## Các tính năng dự kiến
+
+| Nhóm tính năng | Nội dung |
+|---|---|
+| Xác thực và phân quyền | Đăng nhập, quản lý tài khoản và RBAC |
+| Quản lý hạ tầng | Site, Room, Rack, Node/Server và Workload |
+| Digital Twin | Biểu diễn vị trí, quan hệ và trạng thái tài sản |
+| Giám sát thời gian thực | CPU, RAM, network và trạng thái container |
+| Cảnh báo | Phát hiện vượt ngưỡng, mất kết nối và chống cảnh báo trùng |
+| Bảo trì | Tạo, phân công, cập nhật và phê duyệt đóng ticket |
+| Mobile AR | Nhận diện QR/ArUco và hiển thị thông tin thiết bị |
+| Vòng đời tài sản | Thông số phần cứng, bảo hành và lịch sử bảo trì |
+| Báo cáo | Telemetry lịch sử, xu hướng tài nguyên và phân tích năng lượng |
+| Audit | Ghi nhận và truy vết thao tác quan trọng |
+
+Danh sách trên mô tả phạm vi sản phẩm.
+Tình trạng triển khai được theo dõi trên Jira và các Pull Request.
+
+## Cấu trúc hạ tầng
+
+```text
+Site
+└── Room
+    └── Rack
+        └── Node / Server
+            └── Container / Workload
 ```
 
-## Compile and run the project
+## Kiến trúc tổng quan
 
-```bash
-# development
-$ npm run start
+```mermaid
+flowchart LR
+    NODE["Mini Data Center Testbed"] --> AGENT["Collector Agent"]
+    AGENT -->|"Telemetry qua kết nối mTLS"| BACKEND["NestJS Backend"]
 
-# watch mode
-$ npm run start:dev
+    BACKEND <-->|"Lưu và truy vấn dữ liệu"| DB["Database"]
 
-# production mode
-$ npm run start:prod
+    WEB["Next.js Web Portal"] <-->|"REST API / HTTPS"| BACKEND
+    MOBILE["React Native Mobile AR"] <-->|"REST API / HTTPS"| BACKEND
+
+    BACKEND --> GATEWAY["Socket.IO Gateway"]
+    GATEWAY -->|"Dữ liệu thời gian thực"| WEB
+    GATEWAY -->|"Dữ liệu thời gian thực"| MOBILE
 ```
 
-## Run tests
+Sơ đồ thể hiện kiến trúc dự kiến.
+Chi tiết triển khai phải được đối chiếu với mã nguồn hiện có.
+
+## Công nghệ
+
+| Thành phần | Công nghệ định hướng |
+|---|---|
+| Backend | NestJS, TypeScript |
+| Web Portal | Next.js |
+| Mobile AR | React Native trên Android |
+| Real-time | Socket.IO |
+| Database | PostgreSQL và thiết kế lưu trữ time-series phù hợp |
+| Workload thử nghiệm | Docker |
+| Xác thực người dùng | JWT |
+| Phân quyền | RBAC |
+| Xác thực Agent | mTLS |
+| Quản lý mã nguồn | Git, GitHub |
+| Quản lý công việc | Jira |
+
+Phiên bản và dependency cụ thể được xác định trong
+các file cấu hình của từng thành phần.
+
+## Luồng nghiệp vụ chính
+
+1. Agent thu thập và gửi telemetry của node.
+2. Backend kiểm tra, lưu dữ liệu và cập nhật Web/Mobile.
+3. Hệ thống phát hiện bất thường và tạo cảnh báo.
+4. Operator tạo ticket và phân công Technician.
+5. Technician nhận diện thiết bị bằng Mobile AR.
+6. Technician kiểm tra và ghi nhận kết quả bảo trì.
+7. Operator kiểm tra và phê duyệt đóng ticket.
+8. Hệ thống lưu lịch sử và audit.
+
+## Các tiêu chí quan trọng
+
+- Chu kỳ telemetry mặc định là **5 giây** và cấu hình được.
+- Node được xác định không khả dụng khi không nhận telemetry
+  trong **hơn 90 giây**.
+- Node mới phải bắt đầu streaming và xuất hiện trong Digital Twin
+  trong **tối đa 5 phút** kể từ lúc đăng ký.
+- Dữ liệu cũ phải được phân biệt với dữ liệu hiện tại.
+- Thao tác có thể gây gián đoạn phải có kiểm tra quyền,
+  xác nhận và audit nếu được cung cấp.
+
+Đây là tiêu chí cần kiểm chứng, không phải tuyên bố
+rằng hệ thống đã đạt tất cả yêu cầu.
+
+## Thiết lập môi trường Backend
+
+### 1. Tải mã nguồn
+
+Thay các giá trị trong dấu `<...>` bằng thông tin repository:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+git clone <repository-url>
+cd <repository-folder>
 ```
 
-## Deployment
+Nếu Backend nằm trong thư mục con, chuyển vào thư mục
+chứa `package.json` của Backend trước khi chạy lệnh.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### 2. Cài dependency
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Sử dụng package manager tương ứng với lockfile của repository.
+
+Ví dụ, nếu dự án sử dụng npm:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 3. Cấu hình môi trường
 
-## Observability
+- Thiết lập kết nối database.
+- Thiết lập cấu hình JWT.
+- Thiết lập các giá trị môi trường mà ứng dụng yêu cầu.
+- Nếu repository có `.env.example`, sao chép thành `.env`
+  và điền giá trị phù hợp.
+- Chạy migration theo hướng dẫn và công cụ database
+  được sử dụng trong repository.
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+Không đưa mật khẩu, token, khóa riêng hoặc chứng thư
+có thông tin bí mật lên GitHub.
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+### 4. Chạy ứng dụng
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+Xem các script hiện có:
 
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
+```bash
+npm run
+```
 
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
+Nếu `package.json` có script `start:dev`, chạy:
 
-## Resources
+```bash
+npm run start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+Cổng và địa chỉ truy cập được xác định theo cấu hình
+và thông báo khi ứng dụng khởi động.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Kiểm thử
 
-## Support
+Sử dụng các script kiểm thử được khai báo trong `package.json`.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Ví dụ, nếu repository có các script tương ứng:
 
-## Stay in touch
+```bash
+npm run test
+npm run test:e2e
+npm run build
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Các nhóm kiểm thử chính:
 
-## License
+- Xác thực và phân quyền.
+- Quan hệ tài sản và dữ liệu đầu vào.
+- Tiếp nhận và truy vấn telemetry.
+- Streaming và phục hồi kết nối.
+- Cảnh báo và quy trình ticket.
+- Nhận diện marker.
+- Audit và bảo mật.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Tài liệu dự án
+
+Bộ tài liệu phân tích gồm:
+
+| Mã | Nội dung |
+|---|---|
+| AI-2 | Bối cảnh và vấn đề |
+| AI-3 | Mục tiêu dự án |
+| AI-4 | Phạm vi và giới hạn |
+| AI-5 | Tác nhân hệ thống |
+| AI-6 | Yêu cầu chức năng |
+| AI-7 | Yêu cầu phi chức năng |
+| AI-8 | Use Case |
+| AI-9 | ERD |
+
+Tài liệu kiến trúc, Screen Flow, test case và hướng dẫn
+triển khai được bổ sung theo tiến độ dự án.
+
+## Quy trình làm việc nhóm
+
+1. Lấy phiên bản mới nhất của nhánh chung.
+2. Tạo branch riêng cho công việc.
+3. Phát triển và kiểm thử.
+4. Push branch lên GitHub.
+5. Tạo Pull Request.
+6. Review và xử lý góp ý trước khi merge.
+
+Ví dụ tên branch:
+
+```text
+feature/rbac
+feature/telemetry
+fix/token-validation
+docs/ai-7
+```
+
+Không push thông tin bí mật hoặc file môi trường cá nhân.
+Nhánh đích của Pull Request tuân theo quy ước của nhóm.
+
+## Giới hạn
+
+- Đánh giá trên testbed, chưa triển khai vào Data Center thực tế.
+- Khả năng thu thập metric phụ thuộc thiết bị và quyền truy cập.
+- Mobile AR hướng tới Android và marker đã đăng ký.
+- Phân tích điện năng/PUE cần dữ liệu đầu vào phù hợp.
+- Dữ liệu mô phỏng phải được ghi rõ.
+- Không bao gồm tự động sửa chữa phần cứng hoặc
+  điều khiển từ xa không giới hạn.
+
+## Quản lý công việc
+
+[Jira — AR-IMMS](https://phamvanut12121958.atlassian.net/jira/software/projects/AI/boards/2/backlog)
