@@ -434,7 +434,7 @@ Việc xác định các tác nhân giúp làm rõ những đối tượng tươ
 * **Mô tả:** Tiếp nhận dữ liệu từ nhiều nguồn; thực hiện retry khi gửi thất bại theo chính sách cấu hình; phát hiện dữ liệu cũ dựa trên thời điểm ghi nhận; kiểm tra dữ liệu trùng lặp và theo dõi lỗi tiếp nhận khi cần thiết.
 * **Tác nhân:** Automated Monitoring and Alerting System.
 * **Kết quả mong đợi:** Quá trình thu thập đáng tin cậy hơn; dữ liệu cũ, trùng lặp hoặc lỗi được phát hiện và xử lý theo quy tắc hệ thống.
-
+![Sơ đồ chức năng của AR-IMMS](images/sodochucnang.png)
 ---
 
 ## 9.4. Quy tắc nghiệp vụ tổng quát
