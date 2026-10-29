@@ -306,3 +306,182 @@ Tài liệu được đánh giá dựa trên việc xác định đầy đủ 4 
 
 ## 8.6 Kết luận
 Việc xác định các tác nhân giúp làm rõ những đối tượng tương tác với hệ thống AR-IMMS và trách nhiệm của từng đối tượng. Đây là cơ sở để thiết kế chức năng, phân quyền và xây dựng sơ đồ Use Case cho hệ thống.
+
+## 9. Xây dựng yêu cầu phần mềm 
+
+## 9.1. Phạm vi hệ thống
+
+* Xác thực người dùng và kiểm soát quyền truy cập theo vai trò.
+* Quản lý tài sản theo cấu trúc: `Site` → `Room` → `Rack` → `Server/Node` → `Container/Workload`.
+* Tiếp nhận, kiểm tra, lưu trữ và hiển thị dữ liệu telemetry.
+* Theo dõi trạng thái hạ tầng, phát hiện bất thường và quản lý cảnh báo.
+* Tạo và theo dõi ticket sự cố hoặc yêu cầu bảo trì.
+* Hỗ trợ tra cứu thiết bị bằng QR Code/ArUco và ứng dụng Mobile AR.
+* Ghi nhật ký thao tác quan trọng để phục vụ kiểm toán và truy vết.
+
+
+---
+
+## 9.2. Tác nhân hệ thống
+
+| Tác nhân | Vai trò |
+| :--- | :--- |
+| **System Administrator** | Quản trị hệ thống, quản lý tài khoản, phân quyền và các thiết lập được cấp. |
+| **System Operator** | Theo dõi hạ tầng, tra cứu dữ liệu, quản lý cảnh báo và điều phối xử lý sự cố. |
+| **Technician** | Tra cứu thiết bị, tiếp nhận nhiệm vụ và cập nhật hoạt động kiểm tra/bảo trì tại hiện trường. |
+| **Automated Monitoring and Alerting System** | Tự động tiếp nhận hoặc xử lý dữ liệu giám sát, kiểm tra điều kiện cảnh báo và hỗ trợ phát hiện bất thường. |
+
+---
+
+## 9.3. Yêu cầu chức năng (FR-01 đến FR-15)
+
+### FR-01 — Đăng nhập và xác thực
+* **Mô tả:** Cho phép người dùng đăng nhập bằng tài khoản hợp lệ. Backend xác thực thông tin và cấp JWT để truy cập các API được bảo vệ.
+* **Tác nhân:** System Administrator, System Operator, Technician.
+* **Kết quả mong đợi:** Người dùng được xác thực và chỉ truy cập tài nguyên yêu cầu đăng nhập.
+
+### FR-02 — Quản lý tài khoản và quyền truy cập
+* **Mô tả:** Cho phép người có thẩm quyền xem, tạo, cập nhật và quản lý tài khoản. Hệ thống kiểm soát quyền theo vai trò Administrator, Operator và Technician.
+* **Tác nhân:** System Administrator, System Operator, Technician.
+* **Kết quả mong đợi:** Tài khoản được quản lý nhất quán; thao tác không đủ quyền bị từ chối.
+
+### FR-03 — Quản lý tài sản hạ tầng
+* **Mô tả:** Quản lý Site, Room, Rack, Server/Node và Container/Workload. Mỗi tài sản có định danh và liên kết đúng với tài sản cấp trên.
+* **Tác nhân:** System Administrator, System Operator.
+* **Kết quả mong đợi:** Tài sản được lưu trữ và liên kết theo cấu trúc phân cấp đã quy định.
+
+### FR-04 — Tra cứu cấu trúc và thông tin tài sản
+* **Mô tả:** Cho phép tra cứu tài sản, vị trí, thông số kỹ thuật và quan hệ giữa các cấp tài sản theo quyền được cấp.
+* **Tác nhân:** System Operator, Technician.
+* **Kết quả mong đợi:** Người dùng tra cứu được tài sản và thông tin liên quan.
+
+### FR-05 — Tra cứu thiết bị bằng QR Code/ArUco và Mobile AR
+* **Mô tả:** Cho phép kỹ thuật viên quét QR Code hoặc marker ArUco bằng ứng dụng di động để xác định thiết bị và xem thông tin, trạng thái, telemetry, cảnh báo liên quan.
+* **Tác nhân:** Technician.
+* **Kết quả mong đợi:** Marker được ánh xạ tới đúng tài sản và hiển thị thông tin tương ứng.
+
+### FR-06 — Thu thập dữ liệu telemetry
+* **Mô tả:** Tiếp nhận dữ liệu vận hành từ Collector Agent hoặc nguồn thu thập được hệ thống hỗ trợ. Dữ liệu phải gắn với tài sản và có thời điểm ghi nhận.
+* **Tác nhân:** Automated Monitoring and Alerting System.
+* **Kết quả mong đợi:** Dữ liệu hợp lệ được tiếp nhận và chuyển tới bước xử lý/lưu trữ phù hợp.
+
+### FR-07 — Hiển thị trạng thái hạ tầng
+* **Mô tả:** Hiển thị trạng thái hoạt động của server/node và các chỉ số vận hành được hỗ trợ để nhận biết tình trạng bình thường hoặc bất thường.
+* **Tác nhân:** System Operator, Technician.
+* **Kết quả mong đợi:** Người dùng xem được trạng thái dựa trên dữ liệu hệ thống hiện có.
+
+### FR-08 — Hiển thị telemetry thời gian thực
+* **Mô tả:** Cập nhật dữ liệu giám sát trên giao diện thông qua cơ chế truyền dữ liệu thời gian thực hoặc cơ chế cập nhật được hỗ trợ.
+* **Tác nhân:** System Operator.
+* **Kết quả mong đợi:** Dữ liệu mới được hiển thị theo cơ chế và tần suất đã cấu hình.
+
+### FR-09 — Phát hiện và quản lý cảnh báo
+* **Mô tả:** So sánh telemetry với điều kiện hoặc ngưỡng đã cấu hình; tạo, hiển thị và cập nhật trạng thái cảnh báo khi phát hiện bất thường.
+* **Tác nhân:** Automated Monitoring and Alerting System, System Operator.
+* **Kết quả mong đợi:** Cảnh báo được tạo theo quy tắc và trạng thái được quản lý nhất quán.
+
+### FR-10 — Tạo và phân công ticket sự cố
+* **Mô tả:** Cho phép tạo ticket sự cố hoặc yêu cầu bảo trì, ghi nhận thông tin cần thiết và phân công kỹ thuật viên theo quyền được cấp.
+* **Tác nhân:** System Operator, System Administrator.
+* **Kết quả mong đợi:** Ticket được lưu với mã định danh, trạng thái và người phụ trách nếu đã phân công.
+
+### FR-11 — Theo dõi xử lý sự cố và bảo trì
+* **Mô tả:** Cho phép cập nhật và theo dõi trạng thái ticket từ khi tiếp nhận đến khi hoàn tất; lưu thông tin hoạt động bảo trì trong phạm vi hỗ trợ.
+* **Tác nhân:** System Operator, Technician.
+* **Kết quả mong đợi:** Tiến độ xử lý được cập nhật và tra cứu theo quyền.
+
+### FR-12 — Tra cứu telemetry lịch sử
+* **Mô tả:** Cho phép truy vấn dữ liệu telemetry đã lưu theo tài sản, khoảng thời gian và bộ lọc được hệ thống hỗ trợ.
+* **Tác nhân:** System Operator, Technician.
+* **Kết quả mong đợi:** Kết quả phản ánh dữ liệu lịch sử đã được lưu.
+
+### FR-13 — Quản lý cấu hình giám sát
+* **Mô tả:** Cho phép người có thẩm quyền quản lý cấu hình giám sát, ngưỡng cảnh báo và chính sách xử lý dữ liệu trong phạm vi được phê duyệt.
+* **Tác nhân:** System Administrator, System Operator.
+* **Kết quả mong đợi:** Cấu hình được lưu và áp dụng theo quyền và chính sách đã thống nhất.
+
+### FR-14 — Ghi nhật ký thao tác và kiểm toán
+* **Mô tả:** Ghi nhận các thao tác quan trọng như thay đổi cấu hình, quản lý tài sản, thay đổi quyền và xử lý sự cố để phục vụ kiểm tra, truy vết.
+* **Tác nhân:** System Administrator, System Operator.
+* **Kết quả mong đợi:** Nhật ký có thể được tra cứu theo quyền và hỗ trợ truy vết hành động.
+
+### FR-15 — Xử lý lỗi truyền dữ liệu và kiểm soát chất lượng telemetry
+* **Mô tả:** Tiếp nhận dữ liệu từ nhiều nguồn; thực hiện retry khi gửi thất bại theo chính sách cấu hình; phát hiện dữ liệu cũ dựa trên thời điểm ghi nhận; kiểm tra dữ liệu trùng lặp và theo dõi lỗi tiếp nhận khi cần thiết.
+* **Tác nhân:** Automated Monitoring and Alerting System.
+* **Kết quả mong đợi:** Quá trình thu thập đáng tin cậy hơn; dữ liệu cũ, trùng lặp hoặc lỗi được phát hiện và xử lý theo quy tắc hệ thống.
+
+---
+
+## 9.4. Quy tắc nghiệp vụ tổng quát
+
+1. Mỗi tài sản phải có định danh duy nhất trong phạm vi hệ thống để phân biệt và truy vấn.
+2. Tài sản cấp dưới phải tham chiếu đến tài sản cấp trên theo cấu trúc phân cấp đã quy định.
+3. Người dùng chỉ được truy cập chức năng và dữ liệu phù hợp với quyền được cấp.
+4. Dữ liệu telemetry phải gắn với tài sản tương ứng và có thời điểm ghi nhận.
+5. Cảnh báo phải được tạo dựa trên điều kiện hoặc ngưỡng đã cấu hình.
+6. Trạng thái cảnh báo và sự cố phải được quản lý nhất quán trong quá trình xử lý.
+7. Các hành động quan trọng phải được ghi nhận khi thuộc phạm vi audit logging.
+8. Dữ liệu không hợp lệ, cũ hoặc trùng lặp phải được phát hiện và xử lý theo quy tắc hệ thống.
+9. Chính sách retry phải được cấu hình và áp dụng nhất quán, hạn chế xử lý lặp không cần thiết.
+10. Thông tin thiết bị hiển thị qua QR Code/ArUco phải ánh xạ đến đúng tài sản trong hệ thống.
+
+---
+
+## 9.5. Quan hệ giữa yêu cầu chức năng và tác nhân
+
+| Tác nhân | Các yêu cầu chính |
+| :--- | :--- |
+| **System Administrator** | FR-01, FR-02, FR-03, FR-13, FR-14 |
+| **System Operator** | FR-02, FR-03, FR-04, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12, FR-13, FR-14 |
+| **Technician** | FR-01, FR-04, FR-05, FR-07, FR-11, FR-12 |
+| **Automated Monitoring and Alerting System** | FR-06, FR-09, FR-15 |
+
+
+
+---
+
+## 9.6. Tiêu chí kiểm thử và nghiệm thu đề xuất
+
+| Mã | Chủ đề | Tiêu chí nghiệm thu đề xuất |
+| :--- | :--- | :--- |
+| **TC-01** | Xác thực và phân quyền | Đăng nhập hợp lệ thành công; thông tin sai bị từ chối; tài khoản không đủ quyền không truy cập được chức năng bị hạn chế. |
+| **TC-02** | Quản lý tài sản | Có thể tạo và truy vấn tài sản; quan hệ cấp trên/cấp dưới được lưu chính xác. |
+| **TC-03** | Tiếp nhận telemetry | Dữ liệu hợp lệ được tiếp nhận và gắn đúng tài sản cùng thời điểm ghi nhận. |
+| **TC-04** | Retry | Khi gửi thất bại, hệ thống retry theo chính sách cấu hình đã thống nhất. |
+| **TC-05** | Dữ liệu cũ/trùng | Dữ liệu cũ hoặc trùng được nhận diện và xử lý theo quy tắc hệ thống. |
+| **TC-06** | Cảnh báo | Dữ liệu đáp ứng điều kiện tạo cảnh báo; trạng thái cảnh báo được cập nhật nhất quán. |
+| **TC-07** | Ticket sự cố | Có thể tạo ticket, phân công và cập nhật trạng thái theo quyền. |
+| **TC-08** | QR Code/ArUco | Marker được ánh xạ đến đúng tài sản và hiển thị thông tin tương ứng. |
+| **TC-09** | Audit logging | Thao tác thuộc phạm vi ghi nhật ký được ghi nhận và truy vấn bởi người có quyền. |
+
+
+
+---
+
+## 9.7. Kết quả bàn giao
+
+* Tài liệu đặc tả yêu cầu chức năng AR-IMMS gồm FR-01 đến FR-15, mô tả chức năng, tác nhân, kết quả mong đợi, quy tắc nghiệp vụ, quan hệ giữa yêu cầu và tác nhân, yêu cầu phi chức năng liên quan đến xử lý dữ liệu, cùng tiêu chí kiểm thử và nghiệm thu đề xuất.
+* Tài liệu làm cơ sở để hoàn thiện sơ đồ Use Case AI-8, thiết kế kiến trúc NestJS, mô hình dữ liệu Digital Twin và triển khai chức năng trong các Sprint tiếp theo.
+
+---
+
+## 9.8. Nội dung cần xác nhận trước khi triển khai
+
+1. Phạm vi Mobile AR và loại marker được hỗ trợ: QR Code, ArUco hoặc cả hai.
+2. Các loại telemetry, đơn vị đo, định dạng dữ liệu và nguồn dữ liệu được hỗ trợ.
+3. Chu kỳ thu thập/cập nhật telemetry và thời gian xác định node mất kết nối.
+4. Chính sách retry: số lần thử, khoảng thời gian giữa các lần thử và điều kiện dừng.
+5. Quy tắc nhận diện dữ liệu cũ, dữ liệu trùng và cách xử lý từng trường hợp.
+6. Ngưỡng cảnh báo, mức độ nghiêm trọng, cơ chế chống cảnh báo trùng và quy trình đóng cảnh báo.
+7. Ma trận phân quyền chi tiết cho Administrator, Operator và Technician.
+8. Các trường dữ liệu bắt buộc của ticket, lịch sử bảo trì và audit log.
+9. Phạm vi Digital Twin, dữ liệu cần thể hiện và tiêu chí nghiệm thu.
+10. Các chỉ tiêu hiệu năng, bảo mật và khả năng phục hồi cần đo kiểm.
+
+---
+
+## 9.9. Kết luận
+
+Danh sách **FR-01 đến FR-15** xác định phạm vi chức năng cốt lõi của AR-IMMS, từ quản lý tài khoản và tài sản đến giám sát telemetry, cảnh báo, hỗ trợ bảo trì AR và xử lý lỗi truyền dữ liệu. 
+
+Trước khi triển khai chính thức, nhóm cần xác nhận các chính sách vận hành và quyền truy cập còn mở, sau đó liên kết từng yêu cầu với Use Case, thiết kế dữ liệu, công việc Sprint và ca kiểm thử tương ứng.
