@@ -103,6 +103,9 @@ về quy mô, môi trường vận hành và yêu cầu bảo mật.
 Chưa kết luận hệ thống giảm MTTR khi chưa có kết quả thực nghiệm.
 Nếu đánh giá MTTR, cần xác định rõ thời điểm bắt đầu, kết thúc
 và sử dụng các kịch bản sự cố có thể so sánh.
+## Sơ đồ ngữ cảnh
+
+![Sơ đồ ngữ cảnh của AR-IMMS](docs/images/sodongucanh1.png)
 # Mục tiêu của dự án AR-IMMS
 
 ## 1. Mục đích tài liệu
