@@ -730,3 +730,216 @@ Toàn bộ 15 yêu cầu chức năng (`FR-01` đến `FR-15`) được quy chi�
 | **System Operator** | • `UC-01`: Đăng nhập (`FR-01`)<br>• `UC-03`: Quản lý tài sản hạ tầng (`FR-03`)<br>• `UC-04`: Tra cứu thông tin tài sản (`FR-04`)<br>• `UC-05`: Quản lý cấu hình giám sát (`FR-13`)<br>• `UC-07`: Hiển thị Telemetry thời gian thực (`FR-07`, `FR-08`)<br>• `UC-08`: Phát hiện & quản lý cảnh báo (`FR-09`)<br>• `UC-09`: Tra cứu Telemetry lịch sử (`FR-12`)<br>• `UC-12`: Quản lý & điều phối Ticket (`FR-10`, `FR-11`) |
 | **Technician** | • `UC-01`: Đăng nhập (`FR-01`)<br>• `UC-04`: Tra cứu thông tin tài sản (`FR-04`)<br>• `UC-07`: Hiển thị Telemetry thời gian thực (`FR-07`)<br>• `UC-09`: Tra cứu Telemetry lịch sử (`FR-12`)<br>• `UC-11`: Quét QR/ArUco qua Mobile AR (`FR-05`)<br>• `UC-12`: Quản lý & điều phối Ticket (`FR-11`) |
 | **Automated Monitoring & Alerting System** | • `UC-06`: Thu thập dữ liệu Telemetry tự động (`FR-06`)<br>• `UC-08`: Phát hiện & quản lý cảnh báo (`FR-09`)<br>• `UC-10`: Xử lý lỗi truyền dữ liệu & retry (`FR-15`)<br>• `UC-13`: Ghi nhật ký kiểm toán Audit Log (`FR-14`) |
+## 12. ERD
+## 12.1. Mục đích
+
+Sơ đồ mô tả các thực thể chính và mối quan hệ giữa chúng
+trong hệ thống AR-IMMS, làm cơ sở thiết kế cơ sở dữ liệu.
+
+Đây là ERD tổng quan. Các thuộc tính, khóa chính, khóa ngoại
+và ràng buộc chi tiết sẽ được xác định trong phần thiết kế
+cơ sở dữ liệu.
+
+## 12.2. Sơ đồ ERD
+
+```mermaid
+flowchart TB
+    SITE["Site"] ---|"1"| R1{"contains"}
+    R1 ---|"N"| ROOM["Room"]
+
+    ROOM ---|"1"| R2{"contains"}
+    R2 ---|"N"| RACK["Rack"]
+
+    RACK ---|"1"| R3{"contains"}
+    R3 ---|"N"| NODE["Node / Server"]
+
+    NODE ---|"1"| R4{"runs"}
+    R4 ---|"N"| WORKLOAD["Container / Workload"]
+
+    NODE ---|"1"| R5{"identified by"}
+    R5 ---|"N"| MARKER["QR / ArUco Marker"]
+
+    NODE ---|"1"| R6{"monitored by"}
+    R6 ---|"N"| AGENT["Collector Agent"]
+
+    NODE ---|"1"| R7{"produces"}
+    R7 ---|"N"| TELEMETRY["Telemetry"]
+
+    NODE ---|"1"| R8{"configured with"}
+    R8 ---|"N"| RULE["Alert Rule"]
+
+    RULE ---|"0..1"| R9{"triggers"}
+    R9 ---|"N"| ALERT["Alert"]
+
+    NODE ---|"1"| R10{"has"}
+    R10 ---|"N"| ALERT
+
+    ALERT ---|"0..1"| R11{"linked to"}
+    R11 ---|"N"| TICKET["Incident / Maintenance Ticket"]
+
+    NODE ---|"1"| R12{"requires"}
+    R12 ---|"N"| TICKET
+
+    ROLE["Role"] ---|"1"| R13{"assigned to"}
+    R13 ---|"N"| ACCOUNT["Account"]
+
+    ACCOUNT ---|"1"| R14{"creates"}
+    R14 ---|"N"| TICKET
+
+    ACCOUNT ---|"0..1"| R15{"assigned to"}
+    R15 ---|"N"| TICKET
+
+    TICKET ---|"1"| R16{"records"}
+    R16 ---|"N"| HISTORY["Ticket History"]
+
+    TICKET ---|"1"| R17{"contains"}
+    R17 ---|"N"| MAINTENANCE["Maintenance Record"]
+
+    ACCOUNT ---|"1"| R18{"writes"}
+    R18 ---|"N"| MAINTENANCE
+
+    NODE ---|"1"| R19{"covered by"}
+    R19 ---|"N"| WARRANTY["Warranty"]
+
+    ACCOUNT ---|"0..1"| R20{"performs"}
+    R20 ---|"N"| AUDIT["Audit Log"]
+
+    SITE ---|"1"| R21{"records"}
+    R21 ---|"N"| ENERGY["Energy Reading"]
+
+    classDef entity fill:#dae8fc,stroke:#6c8ebf,color:#000;
+    classDef relationship fill:#d5e8d4,stroke:#82b366,color:#000;
+
+    class SITE,ROOM,RACK,NODE,WORKLOAD,MARKER,AGENT,TELEMETRY,RULE,ALERT,TICKET,ROLE,ACCOUNT,HISTORY,MAINTENANCE,WARRANTY,AUDIT,ENERGY entity;
+    class R1,R2,R3,R4,R5,R6,R7,R8,R9,R10,R11,R12,R13,R14,R15,R16,R17,R18,R19,R20,R21 relationship;
+```
+
+*Hình: Sơ đồ thực thể và quan hệ tổng quan của AR-IMMS.*
+
+## 12.3. Quy ước
+
+- Hình chữ nhật biểu diễn thực thể.
+- Hình thoi biểu diễn quan hệ.
+- `1` biểu diễn một đối tượng.
+- `N` biểu diễn nhiều đối tượng; khả năng không có bản ghi
+  liên quan sẽ được làm rõ ở thiết kế chi tiết.
+- `0..1` biểu diễn không có hoặc có một đối tượng.
+
+## 12.4. Mô tả các thực thể
+
+| Thực thể | Mô tả |
+|---|---|
+| Site | Địa điểm triển khai hạ tầng |
+| Room | Phòng đặt thiết bị thuộc một Site |
+| Rack | Tủ hoặc nhóm thiết bị thuộc một Room |
+| Node / Server | Máy chủ hoặc máy tính đại diện trong testbed |
+| Container / Workload | Ứng dụng, dịch vụ hoặc tác vụ chạy trên node |
+| QR / ArUco Marker | Marker được liên kết với node để nhận diện bằng AR |
+| Collector Agent | Thành phần thu thập và gửi telemetry của node |
+| Telemetry | Các bản ghi dữ liệu giám sát theo thời gian |
+| Alert Rule | Điều kiện hoặc ngưỡng dùng để phát hiện bất thường |
+| Alert | Cảnh báo phát sinh từ thiết bị hoặc điều kiện giám sát |
+| Role | Vai trò Administrator, Operator hoặc Technician |
+| Account | Tài khoản người sử dụng hệ thống |
+| Incident / Maintenance Ticket | Phiếu xử lý sự cố hoặc công việc bảo trì |
+| Ticket History | Lịch sử thao tác và thay đổi của ticket |
+| Maintenance Record | Ghi nhận kiểm tra, nguyên nhân, hành động và kết quả bảo trì |
+| Warranty | Thông tin hoặc hợp đồng bảo hành của thiết bị |
+| Audit Log | Nhật ký các thao tác quan trọng của người dùng hoặc hệ thống |
+| Energy Reading | Bản ghi điện năng phục vụ báo cáo và phân tích PUE |
+
+## 12.5. Quy tắc và giả định thiết kế
+
+### 12.5.1. Cấu trúc hạ tầng
+
+Một Site có nhiều Room, một Room có nhiều Rack,
+một Rack có nhiều Node và một Node có nhiều Workload.
+
+Trong mô hình này, mỗi Workload được liên kết với một node.
+Nếu triển khai workload phân tán trên nhiều node,
+nhóm cần mở rộng mô hình dữ liệu.
+
+### 12.5.2. Tài khoản và vai trò
+
+Mô hình giả định mỗi tài khoản có một vai trò.
+Một vai trò có thể được gán cho nhiều tài khoản.
+
+Nếu một tài khoản được phép có nhiều vai trò,
+cần bổ sung thực thể trung gian Account Role.
+
+### 12.5.3. Liên kết marker
+
+Một node có thể có nhiều marker.
+Tại một thời điểm, một định danh marker đang hoạt động
+chỉ được liên kết với một node.
+
+Thay đổi liên kết marker phải được ghi nhận trong audit.
+
+### 12.5.4. Cảnh báo và ticket
+
+Một node có thể phát sinh nhiều cảnh báo và ticket.
+
+Ticket có thể không liên kết với cảnh báo,
+chẳng hạn ticket bảo trì chủ động.
+
+Trong mô hình này, mỗi ticket liên kết tối đa một cảnh báo.
+Nếu cần gom nhiều cảnh báo vào cùng một ticket,
+cần bổ sung thực thể liên kết.
+
+Cảnh báo mất kết nối có thể được tạo bởi quy tắc hệ thống,
+không nhất thiết liên kết với Alert Rule dạng ngưỡng metric.
+
+### 12.5.5. Tạo và phân công ticket
+
+Tài khoản tạo ticket phải có quyền tương ứng.
+
+Ticket có thể chưa được phân công.
+Khi được phân công, tài khoản phụ trách phải là Technician
+đang hoạt động.
+
+Việc nhận công việc, thay đổi người phụ trách, yêu cầu đóng
+và phê duyệt đóng được ghi trong Ticket History.
+
+### 12.5.6. Lịch sử bảo trì
+
+Một ticket có thể chứa nhiều bản ghi bảo trì.
+Mỗi bản ghi xác định người thực hiện và nội dung xử lý.
+
+Tài sản liên quan được xác định thông qua ticket.
+
+### 12.5.7. Audit log
+
+Audit Log có thể được tạo bởi người dùng hoặc hệ thống tự động.
+Với sự kiện tự động, có thể không có Account tương ứng,
+nhưng phải xác định được thành phần thực hiện.
+
+Ứng dụng không cung cấp chức năng sửa hoặc xóa audit log.
+
+### 12.5.8. Dữ liệu điện năng
+
+Một Site có nhiều Energy Reading theo từng khoảng thời gian.
+
+Dữ liệu phải xác định nguồn, đơn vị, phạm vi và thời gian đo.
+Dữ liệu mô phỏng phải được ghi rõ.
+
+Chỉ tính PUE khi có đủ dữ liệu phù hợp về tổng điện năng
+cơ sở và điện năng thiết bị IT trong cùng phạm vi thời gian.
+
+## 12.6. Các nội dung cần hoàn thiện ở thiết kế chi tiết
+
+- Thuộc tính, khóa và kiểu dữ liệu của từng thực thể.
+- Quan hệ giữa telemetry và workload cụ thể.
+- Người thực hiện các chuyển trạng thái cảnh báo.
+- Cách lưu lịch sử liên kết marker và vị trí tài sản.
+- Chính sách lưu giữ telemetry, lịch sử và audit.
+- Ràng buộc duy nhất và các chỉ mục phục vụ truy vấn.
+- Cơ chế bảo vệ audit ở tầng lưu trữ.
+
+## 12.7. Tài liệu liên quan
+
+- Đề tài AR-IMMS.
+- AI-4: Phạm vi dự án.
+- AI-5: Các tác nhân hệ thống.
+- AI-6: Yêu cầu chức năng.
+- AI-7: Yêu cầu phi chức năng.
+- AI-9: Kiến trúc hệ thống.
