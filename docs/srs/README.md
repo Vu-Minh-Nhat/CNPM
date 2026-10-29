@@ -721,6 +721,7 @@ Danh sách **FR-01 đến FR-15** xác định phạm vi chức năng cốt lõi
 Trước khi triển khai chính thức, nhóm cần xác nhận các chính sách vận hành và quyền truy cập còn mở, sau đó liên kết từng yêu cầu với Use Case, thiết kế dữ liệu, công việc Sprint và ca kiểm thử tương ứng.
 
 ## 11 Xây dựng sư đồ Use Case tổng quát
+![Sơ đồ Usecase của AR-IMMS](images/sodousecase.png)
 ## 11.1. Các Tác Nhân trong Hệ Thống (Actors)
 Hệ thống bao gồm **4 tác nhân chính** (3 người dùng con người và 1 hệ thống tự động):
 1. **System Administrator** *(Quản trị viên hệ thống)*
