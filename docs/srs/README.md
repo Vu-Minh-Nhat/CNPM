@@ -481,6 +481,215 @@ Việc xác định các tác nhân giúp làm rõ những đối tượng tươ
 ---
 
 ## 9.9. Kết luận
+## 10.Xác định yêu cầu phi chức năng
+---
+## 10.1 Phạm vi áp dụng
+Các yêu cầu áp dụng cho:
+- Collector Agent.
+- Backend và cơ sở dữ liệu.
+- Luồng truyền telemetry thời gian thực.
+- Web Management Portal.
+- Mobile AR trên Android.
+- Các module cảnh báo, incident, ticket và audit.
+Việc kiểm chứng được thực hiện trên Mini Data Center Testbed.
+Kết quả phải ghi rõ cấu hình thiết bị, số node, workload,
+điều kiện mạng và thời lượng thử nghiệm.
+## 10.2 Danh sách yêu cầu
+### NFR-01 Chu kỳ thu thập telemetry
+Collector Agent phải hỗ trợ chu kỳ thu thập có thể cấu hình,
+với giá trị mặc định là 5 giây.
+**Kiểm chứng:**
+- Kiểm tra cấu hình mặc định.
+- Đối chiếu timestamp của các mẫu thu thập.
+- Thay đổi chu kỳ và kiểm tra hệ thống áp dụng cấu hình mới.
+Chu kỳ thu thập không đồng nghĩa với độ trễ truyền dữ liệu
+từ Agent đến giao diện.
+### NFR-02 Phát hiện node không khả dụng
+Hệ thống phải xác định node không khả dụng khi thời gian
+không nhận được telemetry vượt quá 90 giây.
+**Kiểm chứng:**
+- Ngắt luồng telemetry của một node đã hoạt động.
+- Kiểm tra điều kiện tại các mốc trước, đúng và sau 90 giây.
+- Xác nhận điều kiện phát hiện sử dụng phép so sánh lớn hơn
+  90 giây.
+- Ghi nhận độ trễ của tác vụ kiểm tra và cập nhật giao diện.
+Tần suất kiểm tra và độ trễ phát hiện cho phép: TBD.
+### NFR-03 Retry và phục hồi kết nối
+Agent phải tự thử gửi lại khi truyền dữ liệu thất bại
+và tự tiếp tục gửi telemetry sau khi kết nối được khôi phục.
+**Kiểm chứng:**
+- Ngắt kết nối Agent với Backend.
+- Kiểm tra Agent thực hiện retry theo cấu hình.
+- Khôi phục kết nối và xác nhận Backend nhận telemetry trở lại.
+Số lần thử, khoảng chờ, giới hạn bộ đệm và cách xử lý
+dữ liệu chưa gửi: TBD.
+### NFR-04 Phân biệt dữ liệu cũ
+Hệ thống phải phân biệt dữ liệu cũ với dữ liệu hiện tại,
+đồng thời hiển thị thời điểm cập nhật cuối của thiết bị.
+**Kiểm chứng:**
+- Dừng cập nhật telemetry.
+- Kiểm tra giao diện không tiếp tục biểu diễn dữ liệu cũ
+  như dữ liệu đang được cập nhật trực tiếp.
+- Gửi mẫu có timestamp cũ để kiểm tra quy tắc xử lý.
+Quy tắc stale và ngưỡng đánh dấu: TBD.
+Không mặc định coi ngưỡng stale luôn bằng ngưỡng 90 giây.
+### NFR-05 Ngăn cảnh báo trùng lặp
+Hệ thống phải ngăn việc tạo nhiều cảnh báo trùng
+cho cùng một sự cố đang hoạt động.
+**Kiểm chứng:**
+- Gửi nhiều mẫu liên tiếp cùng thỏa điều kiện cảnh báo.
+- Kiểm tra hệ thống cập nhật cảnh báo theo quy tắc đã chốt,
+  thay vì liên tục tạo cảnh báo mới.
+- Kiểm tra sự cố tái diễn sau khi đã phục hồi.
+Khóa nhận diện sự cố, điều kiện phục hồi và quy tắc tái mở: TBD.
+### NFR-06 Xác thực và phân quyền
+Các chức năng được bảo vệ phải yêu cầu xác thực
+và kiểm tra quyền phía Backend.
+Hệ thống áp dụng ba vai trò:
+Administrator, Operator và Technician.
+**Kiểm chứng:**
+- Yêu cầu chưa xác thực bị từ chối.
+- Người đã đăng nhập nhưng thiếu quyền bị từ chối.
+- Người có quyền thực hiện được thao tác tương ứng.
+- Kiểm tra quyền truy cập API và luồng dữ liệu thời gian thực.
+### NFR-07 Bảo mật kết nối Agent
+Kết nối truyền telemetry giữa Agent và Backend
+phải sử dụng mTLS.
+**Kiểm chứng:**
+- Agent có chứng thư hợp lệ kết nối được.
+- Agent thiếu chứng thư hoặc có chứng thư không được tin cậy
+  bị từ chối.
+- Agent kiểm tra chứng thư của Backend.
+### NFR-08 Audit logging
+Hệ thống phải ghi audit cho các thay đổi cấu hình,
+cập nhật ticket và thao tác từ xa thuộc phạm vi hệ thống.
+**Kiểm chứng:**
+- Thực hiện các thao tác trong phạm vi audit.
+- Đối chiếu thao tác với bản ghi audit tương ứng.
+- Kiểm tra khả năng xác định người hoặc thành phần thực hiện,
+  thời điểm, đối tượng, hành động và kết quả.
+### NFR-09 Bổ sung node mới
+Trong PoC, node mới phải bắt đầu streaming telemetry
+và xuất hiện trong Digital Twin trong tối đa 5 phút
+kể từ lúc đăng ký.
+Việc bổ sung node chỉ yêu cầu cấu hình credentials
+và endpoint address, không sửa code các service lõi.
+**Kiểm chứng:**
+- Ghi nhận thời điểm hoàn tất đăng ký.
+- Ghi nhận thời điểm bắt đầu streaming.
+- Ghi nhận thời điểm node xuất hiện trong Digital Twin.
+- Xác nhận cả hai kết quả đạt trong giới hạn 5 phút.
+- Kiểm tra không có thay đổi code service lõi cho node mới.
+### NFR-10 Logging và kiểm thử tự động
+Hệ thống phải có logging tập trung và kiểm thử tự động
+cho các luồng quan trọng.
+**Kiểm chứng:**
+- Tạo lỗi thu thập, truyền hoặc xử lý dữ liệu và tra cứu log.
+- Chạy bộ kiểm thử tự động cho các luồng đã thống nhất.
+- Lưu kết quả chạy kiểm thử làm bằng chứng.
+Danh sách luồng kiểm thử và mức độ bao phủ: TBD.
+### NFR-11 Giao diện và nền tảng hỗ trợ
+Web Dashboard phải ưu tiên máy tính để bàn, sử dụng
+tiếng Anh, có bố cục responsive và khả năng truy cập phù hợp.
+Ứng dụng Mobile AR chạy trên Android.
+Giao diện phải thể hiện rõ trạng thái server, incident,
+hướng dẫn bảo trì và các bước khắc phục.
+**Kiểm chứng:**
+- Kiểm tra các màn hình và thông báo trên Web bằng tiếng Anh.
+- Kiểm tra bố cục trên các kích thước màn hình được hỗ trợ.
+- Kiểm tra nhãn điều khiển, khả năng đọc và thao tác bàn phím
+  trên Web.
+- Trạng thái không chỉ được phân biệt bằng màu sắc.
+- Kiểm tra Mobile AR trên thiết bị Android đã chọn.
+Danh sách trình duyệt, kích thước màn hình, thiết bị Android
+và tiêu chí accessibility chi tiết: TBD.
+### NFR-12 Tính nhất quán của vòng đời incident
+Incident phải tuân theo vòng đời:
+Open → In-progress → Resolved → Closed.
+Việc chuyển trạng thái phải được kiểm tra quyền
+và ghi audit theo quy tắc nghiệp vụ.
+**Kiểm chứng:**
+- Kiểm tra các chuyển trạng thái hợp lệ.
+- Kiểm tra chuyển trạng thái sai hoặc thiếu quyền bị từ chối.
+- Kiểm tra bước Operator phê duyệt đóng ticket
+  theo quy trình được đặc tả trong AI-6.
+Vòng đời cảnh báo phải được đặc tả riêng,
+không dùng thay cho vòng đời incident.
+### NFR-13 Khả năng cấu hình
+Các metric giám sát và ngưỡng cảnh báo phải cấu hình được,
+không phụ thuộc hoàn toàn vào giá trị cố định trong mã nguồn.
+**Kiểm chứng:**
+- Thay đổi cấu hình bằng cơ chế được cấp quyền.
+- Kiểm tra cấu hình được áp dụng.
+- Kiểm tra thay đổi được ghi audit.
+### NFR-14 Tính sẵn sàng
+Hệ thống phải hoạt động trong khung giờ vận hành
+được nhóm xác định cho testbed.
+Người dùng phải được thông báo khi server hoặc
+data collector không khả dụng.
+**Kiểm chứng:**
+- Chạy hệ thống trong khung giờ thử nghiệm đã thống nhất.
+- Ngắt node hoặc collector và kiểm tra thông báo.
+- Ghi nhận thời gian và ảnh hưởng của gián đoạn.
+Khung giờ và thời lượng thử nghiệm: TBD.
+Chưa đặt cam kết uptime khi chưa có căn cứ.
+### NFR-15 An toàn khi thao tác từ xa
+Nếu cung cấp thao tác có thể gây gián đoạn trong phiên AR,
+hệ thống phải yêu cầu xác nhận trước khi thực thi
+và ghi thao tác vào audit log.
+**Kiểm chứng:**
+- Hủy xác nhận thì thao tác không được thực thi.
+- Chỉ người có quyền mới thực hiện được thao tác.
+- Sau khi xác nhận, kết quả thực thi được ghi audit.
+Yêu cầu này không tự bổ sung chức năng restart service
+nếu nhóm chưa chốt chức năng đó trong phạm vi.
+### NFR-16 Bảo vệ tính toàn vẹn audit log
+Audit log phải được bảo vệ khỏi việc sửa hoặc xóa
+thông qua các chức năng và API của ứng dụng.
+**Kiểm chứng:**
+- Kiểm tra các vai trò không thể sửa hoặc xóa bản ghi audit.
+- Kiểm tra quyền ghi và quyền truy cập kho lưu audit.
+Cơ chế bảo vệ ở tầng lưu trữ và chính sách lưu giữ: TBD.
+Việc chỉ ghi log chưa đủ chứng minh audit không thể thay đổi.
+### NFR-17 Tính toàn vẹn dữ liệu telemetry
+Mỗi bản ghi telemetry phải liên kết với đúng node
+và có thông tin thời gian thu thập.
+**Kiểm chứng:**
+- Gửi mẫu hợp lệ và xác nhận đúng node, timestamp.
+- Gửi mẫu thiếu định danh hoặc thời gian.
+- Kiểm tra dữ liệu không hợp lệ được xử lý theo quy tắc
+  và lỗi được ghi nhận.
+### NFR-18 Kiểm soát dữ liệu telemetry trùng lặp
+Hệ thống phải nhận diện và xử lý bản ghi telemetry trùng
+theo chính sách được thống nhất.
+**Kiểm chứng:**
+- Gửi lại cùng một bản ghi nhiều lần.
+- Kiểm tra kết quả lưu trữ và xử lý phù hợp chính sách.
+Chống dữ liệu telemetry trùng khác với chống cảnh báo trùng.
+Khóa nhận diện bản ghi và chính sách xử lý: TBD.
+### NFR-19 Bảo vệ mật khẩu
+Hệ thống không được lưu mật khẩu người dùng
+dưới dạng văn bản thuần.
+**Kiểm chứng:**
+- Kiểm tra cơ chế xử lý và lưu mật khẩu.
+- Kiểm tra API và log không làm lộ mật khẩu.
+## 10.3 Điều kiện hoàn thiện tài liệu
+Trước khi chốt tài liệu, nhóm cần:
+- Xử lý các mục TBD.
+- Xác định cấu hình và quy mô testbed.
+- Bổ sung test case tham chiếu từng mã NFR.
+- Rà soát tiêu chí với phạm vi và kiến trúc hệ thống.
+## 10.4 Tài liệu liên quan
+- Tài liệu đề tài AR-IMMS.
+- AI-3: Mục tiêu dự án.
+- AI-4: Phạm vi dự án.
+- AI-5: Các tác nhân hệ thống.
+- AI-6: Yêu cầu chức năng.
+## 10.5 Lịch sử thay đổi
+| Phiên bản | Nội dung |
+|---|---|
+| 0.1 | Bản yêu cầu phi chức năng ban đầu |
+| 0.2 | Đề xuất bổ sung tiêu chí kiểm chứng và liên kết yêu cầu |
 
 Danh sách **FR-01 đến FR-15** xác định phạm vi chức năng cốt lõi của AR-IMMS, từ quản lý tài khoản và tài sản đến giám sát telemetry, cảnh báo, hỗ trợ bảo trì AR và xử lý lỗi truyền dữ liệu. 
 
