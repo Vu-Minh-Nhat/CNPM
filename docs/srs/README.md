@@ -270,7 +270,7 @@ không phải xác nhận rằng hệ thống đã đạt được.
 * **Mobile AR App (React Native - Android):** Phát triển ứng dụng trên thiết bị di động Android tích hợp thư viện quét marker QR/ArUco, hiển thị thông tin dạng overlay theo ngữ cảnh thiết bị tại hiện trường.
 * **Module Cảnh báo & Ticket:** Hoàn thiện luồng tự động chuyển đổi cảnh báo thành ticket, ngăn chặn việc tạo trùng lặp cảnh báo cho cùng một sự cố, đồng thời ghi nhận nhật ký bảo trì và audit log.
 
-### 7.4. G giai đoạn 4: Kiểm thử, Đánh giá và Hoàn thiện tài liệu
+### 7.4. Giai đoạn 4: Kiểm thử, Đánh giá và Hoàn thiện tài liệu
 * **Kiểm thử tích hợp hệ thống:** Chạy thử nghiệm toàn bộ luồng từ lúc phát sinh bất thường, tạo ticket, kỹ thuật viên quét mã AR xử lý cho đến khi Operator phê duyệt đóng ticket.
 * **Đánh giá thực nghiệm:** Thực hiện các kịch bản so sánh thời gian và độ chính xác giữa phương pháp đối chiếu thủ công và sử dụng ứng dụng AR.
 * **Đóng gói sản phẩm:** Hoàn thiện mã nguồn, kịch bản test, script triển khai tự động và bộ tài liệu hướng dẫn sử dụng chi tiết bàn giao cho hội đồng đánh giá.
