@@ -105,7 +105,7 @@ Nếu đánh giá MTTR, cần xác định rõ thời điểm bắt đầu, kế
 và sử dụng các kịch bản sự cố có thể so sánh.
 ## Sơ đồ ngữ cảnh
 
-![Sơ đồ ngữ cảnh của AR-IMMS](images/sodongucanh1.png)
+![Sơ đồ ngữ cảnh của AR-IMMS](images/sodongucanh.png)
 # Mục tiêu của dự án AR-IMMS
 
 ## 1. Mục đích tài liệu
