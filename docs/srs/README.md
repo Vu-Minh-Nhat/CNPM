@@ -106,6 +106,31 @@ và sử dụng các kịch bản sự cố có thể so sánh.
 ## Sơ đồ ngữ cảnh
 
 ![Sơ đồ ngữ cảnh của AR-IMMS](images/sodongucanh.png)
+# Bối cảnh hoạt động của hệ thống AR-IMMS
+
+## 1. Môi trường hoạt động
+
+- **Nền tảng:** Web Management Portal trên trình duyệt và ứng dụng Mobile AR trên Android.
+- **Kết nối:** Agent, Backend, Web và Mobile cần kết nối mạng để truyền và cập nhật dữ liệu. Khi mất kết nối, hệ thống phải thể hiện rõ trạng thái và thời điểm cập nhật cuối.
+- **Hạ tầng:** Backend NestJS, Web Next.js, Mobile React Native, truyền dữ liệu thời gian thực bằng [Socket.IO](https://socket.io/) và lưu trữ dữ liệu bằng cơ sở dữ liệu quan hệ/time-series.
+- **Môi trường thử nghiệm:** Mini Data Center Testbed, sử dụng máy tính vật lý đại diện cho server và container đại diện cho workload.
+
+## 2. Người sử dụng dự kiến
+
+| Vai trò | Trách nhiệm |
+|---|---|
+| System Administrator | Quản lý tài khoản, phân quyền, cấu hình, sức khỏe hệ thống và audit log |
+| System Operator | Quản lý tài sản, giám sát telemetry, xử lý cảnh báo, phân công và phê duyệt đóng ticket |
+| Technician | Nhận công việc, quét marker bằng AR, kiểm tra thiết bị và cập nhật kết quả bảo trì |
+
+## 3. Các tương tác trong sơ đồ ngữ cảnh
+
+| Đối tượng | Thông tin gửi tới AR-IMMS | Thông tin nhận từ AR-IMMS |
+|---|---|---|
+| Administrator | Yêu cầu quản trị | Thông tin cấu hình, sức khỏe hệ thống và audit |
+| Operator | Yêu cầu quản lý, cấu hình cảnh báo và phân công ticket | Telemetry, cảnh báo và báo cáo |
+| Technician | Thông tin marker và cập nhật bảo trì | Thông tin thiết bị, telemetry và ticket được giao |
+| Collector Agent | Telemetry và trạng thái kết nối | Cấu hình thu thập theo thiết kế |
 # Mục tiêu của dự án AR-IMMS
 
 ## 1. Mục đích tài liệu
