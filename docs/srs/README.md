@@ -694,3 +694,39 @@ Trước khi chốt tài liệu, nhóm cần:
 Danh sách **FR-01 đến FR-15** xác định phạm vi chức năng cốt lõi của AR-IMMS, từ quản lý tài khoản và tài sản đến giám sát telemetry, cảnh báo, hỗ trợ bảo trì AR và xử lý lỗi truyền dữ liệu. 
 
 Trước khi triển khai chính thức, nhóm cần xác nhận các chính sách vận hành và quyền truy cập còn mở, sau đó liên kết từng yêu cầu với Use Case, thiết kế dữ liệu, công việc Sprint và ca kiểm thử tương ứng.
+
+## 11 Xây dựng sư đồ Use Case tổng quát
+## 11.1. Các Tác Nhân trong Hệ Thống (Actors)
+Hệ thống bao gồm **4 tác nhân chính** (3 người dùng con người và 1 hệ thống tự động):
+1. **System Administrator** *(Quản trị viên hệ thống)*
+2. **System Operator** *(Nhân viên vận hành hệ thống)*
+3. **Technician** *(Kỹ thuật viên hiện trường)*
+4. **Automated Monitoring and Alerting System** *(Hệ thống giám sát và cảnh báo tự động)*
+---
+## 11.2. Phân Nhóm Use Case theo Chức Năng (System Boundaries)
+Toàn bộ 15 yêu cầu chức năng (`FR-01` đến `FR-15`) được quy chiếu và gom thành **13 Use Case chính (`UC-01` đến `UC-13`)** phân chia vào 4 vùng ranh giới chức năng:
+### Nhóm 1: Xác thực & Quản lý tài khoản (Authentication & Account Management)
+* **UC-01:** Đăng nhập hệ thống (`FR-01`) — *(System Administrator, System Operator, Technician)*
+* **UC-02:** Quản lý tài khoản & Phân quyền (`FR-02`) — *(System Administrator)*
+### Nhóm 2: Quản lý tài sản số & Cấu trúc Digital Twin (Asset Management)
+* **UC-03:** Quản lý tài sản hạ tầng - Site, Room, Rack, Server, Container (`FR-03`) — *(System Administrator, System Operator)*
+* **UC-04:** Tra cứu thông tin / cấu trúc tài sản (`FR-04`) — *(System Operator, Technician)*
+* **UC-05:** Quản lý cấu hình giám sát (`FR-13`) — *(System Administrator, System Operator)*
+### Nhóm 3: Giám sát, Telemetry & Cảnh báo (Monitoring & Alerting)
+* **UC-06:** Thu thập dữ liệu Telemetry (`FR-06`) — *(Automated Monitoring and Alerting System)*
+* **UC-07:** Hiển thị trạng thái hạ tầng & Telemetry thời gian thực (`FR-07`, `FR-08`) — *(System Operator, Technician)*
+* **UC-08:** Phát hiện bất thường và quản lý cảnh báo (`FR-09`) — *(Automated System, System Operator)*
+* **UC-09:** Tra cứu Telemetry lịch sử (`FR-12`) — *(System Operator, Technician)*
+* **UC-10:** Xử lý lỗi truyền dữ liệu & kiểm soát chất lượng - retry, chống trùng lặp (`FR-15`) — *(Automated System)*
+### Nhóm 4: Bảo trì hiện trường qua AR & Quản lý Ticket (Maintenance & AR Support)
+* **UC-11:** Quét mã QR/ArUco bằng Mobile AR (`FR-05`) — *(Technician)*
+* **UC-12:** Quản lý sự cố & Cập nhật ticket bảo trì (`FR-10`, `FR-11`) — *(System Administrator, System Operator, Technician)*
+* **UC-13:** Ghi nhật ký kiểm toán Audit Log (`FR-14`) — *(Automated System)*
+---
+## 11.3. Ma Trận Phân Quyền Tác Nhân & Use Cases
+| Tác nhân (Actor) | Các Use Case kết nối trực tiếp trên sơ đồ |
+| :--- | :--- |
+| **System Administrator** | • `UC-01`: Đăng nhập (`FR-01`)<br>• `UC-02`: Quản lý tài khoản & Phân quyền (`FR-02`)<br>• `UC-03`: Quản lý tài sản hạ tầng (`FR-03`)<br>• `UC-05`: Quản lý cấu hình giám sát (`FR-13`)<br>• `UC-12`: Quản lý Ticket bảo trì (`FR-10`) |
+| **System Operator** | • `UC-01`: Đăng nhập (`FR-01`)<br>• `UC-03`: Quản lý tài sản hạ tầng (`FR-03`)<br>• `UC-04`: Tra cứu thông tin tài sản (`FR-04`)<br>• `UC-05`: Quản lý cấu hình giám sát (`FR-13`)<br>• `UC-07`: Hiển thị Telemetry thời gian thực (`FR-07`, `FR-08`)<br>• `UC-08`: Phát hiện & quản lý cảnh báo (`FR-09`)<br>• `UC-09`: Tra cứu Telemetry lịch sử (`FR-12`)<br>• `UC-12`: Quản lý & điều phối Ticket (`FR-10`, `FR-11`) |
+| **Technician** | • `UC-01`: Đăng nhập (`FR-01`)<br>• `UC-04`: Tra cứu thông tin tài sản (`FR-04`)<br>• `UC-07`: Hiển thị Telemetry thời gian thực (`FR-07`)<br>• `UC-09`: Tra cứu Telemetry lịch sử (`FR-12`)<br>• `UC-11`: Quét QR/ArUco qua Mobile AR (`FR-05`)<br>• `UC-12`: Quản lý & điều phối Ticket (`FR-11`) |
+| **Automated Monitoring & Alerting System** | • `UC-06`: Thu thập dữ liệu Telemetry tự động (`FR-06`)<br>• `UC-08`: Phát hiện & quản lý cảnh báo (`FR-09`)<br>• `UC-10`: Xử lý lỗi truyền dữ liệu & retry (`FR-15`)<br>• `UC-13`: Ghi nhật ký kiểm toán Audit Log (`FR-14`) |
