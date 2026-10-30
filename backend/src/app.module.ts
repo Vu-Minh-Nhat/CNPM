@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard.js'; // [RBAC]
 import { RolesGuard } from './auth/roles.guard.js'; // [RBAC]
 import { HealthModule } from './health/health.module.js';
 import { UsersModule } from './users/users.module.js'; // [RBAC]
+import { DatabaseModule } from './database/database.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 export const observeEnabled = Boolean(
@@ -18,6 +19,7 @@ export const observeEnabled = Boolean(
 
 @Module({
   imports: [
+    DatabaseModule,
     ...(observeEnabled
       ? [
           ObserveModule.forRoot({

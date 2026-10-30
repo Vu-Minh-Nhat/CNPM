@@ -20,7 +20,10 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
-    "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
+    "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
+    "migration:run": "node scripts/database.mjs run",
+    "migration:status": "node scripts/database.mjs status",
+    "db:seed": "node scripts/database.mjs seed"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",
@@ -32,7 +35,8 @@
     "dotenv": "^18.0.9",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^1.1.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.0",
