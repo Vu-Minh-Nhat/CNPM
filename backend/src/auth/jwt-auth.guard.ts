@@ -42,7 +42,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     // Lấy vai trò từ nguồn dữ liệu tin cậy để đổi quyền / khóa tài khoản có hiệu lực ngay.
-    const user = this.users.findById(payload.sub);
+ const user = await this.users.findById(payload.sub);
     if (!user || !user.isActive) {
       throw new UnauthorizedException("Tài khoản không tồn tại hoặc đã bị khóa");
     }

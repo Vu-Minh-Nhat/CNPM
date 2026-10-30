@@ -11,7 +11,9 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = email ? this.users.findByEmail(email) : undefined;
+    const user = email
+  ? await this.users.findByEmail(email)
+  : undefined;
     const ok = !!user && user.isActive && (await bcrypt.compare(password ?? "", user.passwordHash));
     if (!user || !ok) throw new UnauthorizedException("Sai email hoặc mật khẩu");
 

@@ -9,37 +9,67 @@ import {
   Param,
   Patch,
   Post,
-} from "@nestjs/common";
-import { Roles } from "../common/decorators/roles.decorator.js";
-import { ALL_ROLES, Role } from "../common/enums/role.enum.js";
-import { UsersService } from "./users.service.js";
+} from '@nestjs/common';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { ALL_ROLES, Role } from '../common/enums/role.enum.js';
+import { UsersService } from './users.service.js';
 
-/** Quản lý tài khoản & gán vai trò: chỉ Administrator. */
-@Controller("users")
+@Controller('users')
 @Roles(Role.ADMINISTRATOR)
 export class UsersController {
-  constructor(@Inject(UsersService) private readonly users: UsersService) {}
-
+  constructor(
+    @Inject(UsersService)
+    private readonly users: UsersService,
+  ) {}
   @Get()
-  list() {
+  async list() {
     return this.users.list();
   }
-
   @Post()
-  create(@Body() body: { email: string; password: string; role: Role }) {
-    if (!body?.email || !body?.password || body.password.length < 8) {
-      throw new BadRequestException("Email và mật khẩu (>= 8 ký tự) là bắt buộc");
+  async create(
+    @Body() body: {
+      email: string;
+      password: string;
+      role: Role;
+    },
+  ) {
+    if (
+      typeof body?.email !== 'string' ||
+      !body.email.trim() ||
+      typeof body?.password !== 'string' ||
+      body.password.length < 8 ||
+      Buffer.byteLength(body.password, 'utf8') > 72
+    ) {
+      throw new BadRequestException(
+        'Email là bắt buộc; mật khẩu từ 8 ký tự, tối đa 72 byte',
+      );
     }
-    if (!ALL_ROLES.includes(body.role)) throw new BadRequestException("Vai trò không hợp lệ");
-    if (this.users.findByEmail(body.email)) throw new ConflictException("Email đã tồn tại");
-    return this.users.create(body.email, body.password, body.role);
-  }
+    if (!ALL_ROLES.includes(body.role)) {
+      throw new BadRequestException('Vai trò không hợp lệ');
+    }
+    const existingUser = await this.users.findByEmail(body.email);
+    if (existingUser) {
+      throw new ConflictException('Email đã tồn tại');
+    }
 
-  @Patch(":id/role")
-  changeRole(@Param("id") id: string, @Body() body: { role: Role }) {
-    if (!ALL_ROLES.includes(body?.role)) throw new BadRequestException("Vai trò không hợp lệ");
-    const updated = this.users.changeRole(id, body.role);
-    if (!updated) throw new NotFoundException();
+    return this.users.create(
+      body.email,
+      body.password,
+      body.role,
+    );
+  }
+  @Patch(':id/role')
+  async changeRole(
+    @Param('id') id: string,
+    @Body() body: { role: Role },
+  ) {
+    if (!ALL_ROLES.includes(body?.role)) {
+      throw new BadRequestException('Vai trò không hợp lệ');
+    }
+    const updated = await this.users.changeRole(id, body.role);
+    if (!updated) {
+      throw new NotFoundException('Không tìm thấy tài khoản');
+    }
     return updated;
   }
 }

@@ -1,295 +1,366 @@
 # AR-IMMS
 
-## Giới thiệu
+**AR-Integrated Infrastructure Monitoring and Maintenance System**
 
-**AR-IMMS — AR-Integrated Infrastructure Monitoring and
-Maintenance System** là hệ thống giám sát và bảo trì cơ sở
-hạ tầng tích hợp thực tế tăng cường.
+Hệ thống giám sát và bảo trì hạ tầng tích hợp thực tế tăng cường,
+được phát triển và đánh giá trên Mini Data Center Testbed.
 
-Hệ thống liên kết thiết bị vật lý với telemetry, cảnh báo
-và quy trình bảo trì. Web Portal hỗ trợ quản lý tập trung,
-còn ứng dụng Mobile AR giúp kỹ thuật viên nhận diện
-và tra cứu thông tin thiết bị ngay tại hiện trường.
+## 1. Giới thiệu
 
-Dự án được triển khai và đánh giá trên Mini Data Center Testbed.
+AR-IMMS liên kết thiết bị vật lý với dữ liệu giám sát,
+cảnh báo và lịch sử bảo trì.
 
-## Bài toán cần giải quyết
+Web Portal hỗ trợ quản lý tập trung. Ứng dụng Mobile AR
+hỗ trợ kỹ thuật viên nhận diện và tra cứu thông tin thiết bị
+tại hiện trường.
 
-- Dữ liệu giám sát tách biệt với vị trí thiết bị vật lý.
-- Kỹ thuật viên mất thời gian đối chiếu để tìm đúng máy chủ.
-- Telemetry, log và lịch sử bảo trì chưa được liên kết thuận tiện.
-- Khó theo dõi xuyên suốt từ cảnh báo đến kết quả bảo trì.
-
-## Người sử dụng
+## 2. Người sử dụng
 
 | Vai trò | Trách nhiệm chính |
 |---|---|
-| Administrator | Quản lý tài khoản, phân quyền, cấu hình, sức khỏe hệ thống và audit |
-| Operator | Quản lý hạ tầng, giám sát, xử lý cảnh báo, phân công và phê duyệt đóng ticket |
-| Technician | Nhận ticket, quét AR, kiểm tra thiết bị và cập nhật kết quả bảo trì |
+| System Administrator | Quản lý tài khoản, phân quyền, cấu hình, sức khỏe hệ thống và audit log |
+| System Operator | Quản lý tài sản, giám sát telemetry, xử lý cảnh báo, phân công và phê duyệt đóng ticket |
+| Technician | Nhận công việc, quét marker AR, kiểm tra thiết bị và cập nhật kết quả bảo trì |
 
-Hệ thống giám sát tự động thực hiện thu thập telemetry,
-phát hiện bất thường, cập nhật cảnh báo và xử lý kết nối.
+Collector Agent là thành phần phần mềm thu thập và gửi telemetry
+từ môi trường thử nghiệm về Backend.
 
-## Các tính năng dự kiến
+## 3. Các chức năng dự kiến
 
-| Nhóm tính năng | Nội dung |
-|---|---|
-| Xác thực và phân quyền | Đăng nhập, quản lý tài khoản và RBAC |
-| Quản lý hạ tầng | Site, Room, Rack, Node/Server và Workload |
-| Digital Twin | Biểu diễn vị trí, quan hệ và trạng thái tài sản |
-| Giám sát thời gian thực | CPU, RAM, network và trạng thái container |
-| Cảnh báo | Phát hiện vượt ngưỡng, mất kết nối và chống cảnh báo trùng |
-| Bảo trì | Tạo, phân công, cập nhật và phê duyệt đóng ticket |
-| Mobile AR | Nhận diện QR/ArUco và hiển thị thông tin thiết bị |
-| Vòng đời tài sản | Thông số phần cứng, bảo hành và lịch sử bảo trì |
-| Báo cáo | Telemetry lịch sử, xu hướng tài nguyên và phân tích năng lượng |
-| Audit | Ghi nhận và truy vết thao tác quan trọng |
+- Xác thực người dùng và phân quyền RBAC.
+- Quản lý cấu trúc Site → Room → Rack → Node/Server → Workload.
+- Nhận diện thiết bị thông qua marker QR/ArUco.
+- Giám sát telemetry và trạng thái kết nối.
+- Hiển thị dữ liệu thời gian thực trên Web và Mobile.
+- Phát hiện và quản lý cảnh báo.
+- Quản lý ticket sự cố và bảo trì.
+- Tra cứu lịch sử telemetry, bảo trì và audit.
+- Báo cáo vận hành và phân tích năng lượng khi có dữ liệu phù hợp.
 
 Danh sách trên mô tả phạm vi sản phẩm.
-Tình trạng triển khai được theo dõi trên Jira và các Pull Request.
+Trạng thái triển khai hiện tại được trình bày ở mục 6.
 
-## Cấu trúc hạ tầng
+## 4. Cấu trúc repository
 
 ```text
-Site
-└── Room
-    └── Rack
-        └── Node / Server
-            └── Container / Workload
+CNPM/
+├── docs/              # SRS, sơ đồ và báo cáo
+├── backend/           # NestJS Backend
+├── frontend/          # Web Portal Next.js
+├── mobile/            # Ứng dụng Mobile AR
+├── agent/             # Collector Agent
+├── skills/            # Hướng dẫn và quy trình làm việc dùng lại
+├── README.md          # Giới thiệu toàn dự án
+├── checklist.md       # Theo dõi công việc, bổ sung theo tiến độ
+└── .gitignore
 ```
 
-## Kiến trúc tổng quan
+Backend nằm trong thư mục `backend/`.
+Xem [hướng dẫn Backend](backend/README.md).
 
-```mermaid
-flowchart LR
-    NODE["Mini Data Center Testbed"] --> AGENT["Collector Agent"]
-    AGENT -->|"Telemetry qua kết nối mTLS"| BACKEND["NestJS Backend"]
+Các thành phần chưa triển khai có thể chỉ chứa README mô tả kế hoạch.
+Git không lưu thư mục rỗng.
 
-    BACKEND <-->|"Lưu và truy vấn dữ liệu"| DB["Database"]
+## 5. Công nghệ
 
-    WEB["Next.js Web Portal"] <-->|"REST API / HTTPS"| BACKEND
-    MOBILE["React Native Mobile AR"] <-->|"REST API / HTTPS"| BACKEND
-
-    BACKEND --> GATEWAY["Socket.IO Gateway"]
-    GATEWAY -->|"Dữ liệu thời gian thực"| WEB
-    GATEWAY -->|"Dữ liệu thời gian thực"| MOBILE
-```
-
-Sơ đồ thể hiện kiến trúc dự kiến.
-Chi tiết triển khai phải được đối chiếu với mã nguồn hiện có.
-
-## Công nghệ
-
-| Thành phần | Công nghệ định hướng |
+| Thành phần | Công nghệ |
 |---|---|
 | Backend | NestJS, TypeScript |
-| Web Portal | Next.js |
-| Mobile AR | React Native trên Android |
-| Real-time | Socket.IO |
-| Database | PostgreSQL và thiết kế lưu trữ time-series phù hợp |
-| Workload thử nghiệm | Docker |
-| Xác thực người dùng | JWT |
+| ORM | TypeORM |
+| Database | PostgreSQL |
+| Xác thực | JWT |
 | Phân quyền | RBAC |
-| Xác thực Agent | mTLS |
+| Web Portal — dự kiến | Next.js |
+| Mobile AR — dự kiến | React Native trên Android |
+| Truyền dữ liệu thời gian thực — dự kiến | Socket.IO |
+| Workload thử nghiệm — dự kiến | Docker |
+| Kết nối Agent — dự kiến | mTLS |
 | Quản lý mã nguồn | Git, GitHub |
 | Quản lý công việc | Jira |
 
-Phiên bản và dependency cụ thể được xác định trong
-các file cấu hình của từng thành phần.
+Phiên bản dependency cụ thể được khai báo trong
+`package.json` và `package-lock.json` của từng thành phần.
 
-## Luồng nghiệp vụ chính
+## 6. Trạng thái triển khai Backend
 
-1. Agent thu thập và gửi telemetry của node.
-2. Backend kiểm tra, lưu dữ liệu và cập nhật Web/Mobile.
-3. Hệ thống phát hiện bất thường và tạo cảnh báo.
-4. Operator tạo ticket và phân công Technician.
-5. Technician nhận diện thiết bị bằng Mobile AR.
-6. Technician kiểm tra và ghi nhận kết quả bảo trì.
-7. Operator kiểm tra và phê duyệt đóng ticket.
-8. Hệ thống lưu lịch sử và audit.
+### Đã triển khai và kiểm tra trong môi trường phát triển
 
-## Các tiêu chí quan trọng
+- Khởi tạo NestJS và TypeScript.
+- Cấu hình biến môi trường, PORT và CORS.
+- Endpoint kiểm tra hoạt động `/health`.
+- Kết nối PostgreSQL thông qua `DATABASE_URL`.
+- Tích hợp TypeORM và migration.
+- Tạo bảng vai trò, người dùng và cây tài sản.
+- Thiết lập khóa ngoại, khóa duy nhất và ràng buộc dữ liệu.
+- Tạo dữ liệu mẫu; chạy lại seed không tạo bản ghi trùng.
+- Đăng nhập bằng tài khoản lưu trong PostgreSQL.
+- Đọc danh sách tài khoản theo quyền Administrator.
+- Đọc Node cùng Rack, Room, Site và Workload.
+- Kiểm thử Backend gồm xác thực, phân quyền, truy vấn tài sản,
+  health và CORS.
 
-- Chu kỳ telemetry mặc định là **5 giây** và cấu hình được.
-- Node được xác định không khả dụng khi không nhận telemetry
-  trong **hơn 90 giây**.
-- Node mới phải bắt đầu streaming và xuất hiện trong Digital Twin
-  trong **tối đa 5 phút** kể từ lúc đăng ký.
-- Dữ liệu cũ phải được phân biệt với dữ liệu hiện tại.
-- Thao tác có thể gây gián đoạn phải có kiểm tra quyền,
-  xác nhận và audit nếu được cung cấp.
+### Chưa triển khai hoặc chưa xác nhận hoàn thành
 
-Đây là tiêu chí cần kiểm chứng, không phải tuyên bố
-rằng hệ thống đã đạt tất cả yêu cầu.
+- Tạo, sửa và xóa tài sản qua API.
+- Collector Agent và tiếp nhận telemetry.
+- Socket.IO và dashboard thời gian thực.
+- Cảnh báo và quy trình ticket.
+- Mobile AR.
+- Báo cáo năng lượng và audit đầy đủ.
+- Triển khai và đánh giá toàn hệ thống.
 
-## Thiết lập môi trường Backend
+Các endpoint tạo, sửa và xóa tài sản hiện trả HTTP 501
+khi người gọi có quyền truy cập.
 
-### 1. Tải mã nguồn
+## 7. Khởi chạy Backend
 
-Sử dụng Node.js 24 LTS (từ 24.15 trở lên) và npm:
+### 7.1. Yêu cầu
 
-```bash
+- Git.
+- Node.js 24 LTS, từ 24.15 trở lên.
+- npm.
+- PostgreSQL 16.
+- Một database phát triển riêng cho mỗi thành viên.
+
+### 7.2. Tải mã nguồn
+
+```powershell
 git clone https://github.com/Vu-Minh-Nhat/CNPM.git
-cd CNPM
-```
-
-Backend hiện nằm ngay tại thư mục gốc của repository, nơi có `package.json`.
-
-### 2. Cài dependency
-
-Chạy theo phiên bản trong `package-lock.json`:
-
-```bash
+cd CNPM/backend
 npm ci
 ```
 
-### 3. Cấu hình môi trường
+### 7.3. Cấu hình môi trường
 
 Trong PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
+```
+
+Nếu đã có `.env`, chỉnh file hiện có, không sao chép đè.
+
+Điền cấu hình tương ứng với máy cá nhân:
+
+```dotenv
+NODE_ENV=development
+PORT=3000
+CORS_ORIGINS=http://localhost:3001,http://localhost:5173
+
+DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/DATABASE_NAME
+
+JWT_SECRET=
+SEED_PASSWORD=
+```
+
+- Thay `USERNAME`, `PASSWORD` và `DATABASE_NAME` bằng thông tin thực tế.
+- Mật khẩu trong `DATABASE_URL` phải được mã hóa URL nếu chứa ký tự đặc biệt.
+- Tạo khóa JWT riêng và điền vào `JWT_SECRET`.
+- Đặt `SEED_PASSWORD` ít nhất 12 ký tự và tối đa 72 byte.
+- Nếu Web dùng cổng 3000, đổi cổng Web hoặc Backend và cập nhật CORS.
+- Không đưa file `.env` hoặc mật khẩu thật lên GitHub.
+
+Có thể tạo khóa JWT bằng:
+
+```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Trên macOS/Linux, dùng `cp .env.example .env`. Dán chuỗi vừa tạo vào
-`JWT_SECRET` trong `.env`; không chia sẻ chuỗi này.
+### 7.4. Khởi tạo database
 
-| Biến | Cách sử dụng |
-|---|---|
-| `NODE_ENV` | `development` khi chạy cục bộ; `production` khi triển khai |
-| `PORT` | Cổng Backend, mặc định `3000` |
-| `CORS_ORIGINS` | Origin Web được phép gọi API, phân cách bằng dấu phẩy, không có dấu `/` cuối |
-| `JWT_SECRET` | Khóa ký token; bắt buộc khi chạy production |
-| `DATABASE_URL` | Chuỗi kết nối PostgreSQL dùng cho `npm run db:check` |
-| `OBSERVE_APP_KEY`, `OBSERVE_APP_SECRET` | Tùy chọn; chỉ bật Nest Observe khi có đủ hai giá trị |
+Tạo database phát triển trống bằng pgAdmin hoặc công cụ PostgreSQL,
+sau đó chạy lần lượt:
 
-Ví dụ `CORS_ORIGINS=http://localhost:3001,http://localhost:5173`.
-Nếu Web cũng chạy cổng 3000, đổi cổng Web hoặc Backend để tránh trùng.
-
-PostgreSQL đã có driver `pg`. Khi có database, cấu hình
-`DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE` rồi chạy:
-
-```bash
+```powershell
 npm run db:check
+npm run build
+npm run migration:run
+npm run migration:status
+npm run db:seed
 ```
 
-Lệnh chỉ kiểm tra kết nối bằng `SELECT 1`, không tạo bảng hoặc sửa dữ liệu.
-Schema, migration và lưu trữ nghiệp vụ sẽ được triển khai trong AI-29.
-Backend hiện khởi động được khi chưa cấu hình database.
+Chỉ chạy bước tiếp theo khi bước trước thành công.
 
-Không đưa mật khẩu, token, khóa riêng hoặc chứng thư
-có thông tin bí mật lên GitHub.
+Migration tạo các bảng:
 
-### 4. Chạy ứng dụng
+| Bảng | Mục đích |
+|---|---|
+| roles | Vai trò người dùng |
+| users | Tài khoản |
+| sites | Địa điểm |
+| rooms | Phòng thuộc Site |
+| racks | Rack thuộc Room |
+| nodes | Node/Server thuộc Rack |
+| workloads | Workload thuộc Node |
+| schema_migrations | Theo dõi migration đã áp dụng |
 
-```bash
+Các bảng nghiệp vụ khác được bổ sung bằng migration
+theo tiến độ phát triển.
+
+Schema không tự đồng bộ khi Backend khởi động.
+Thay đổi cấu trúc database phải được quản lý bằng migration.
+
+### 7.5. Dữ liệu mẫu
+
+| Email | Vai trò |
+|---|---|
+| admin@arimms.local | Administrator |
+| operator@arimms.local | Operator |
+| tech@arimms.local | Technician |
+
+Ba tài khoản sử dụng mật khẩu đã đặt trong `SEED_PASSWORD`
+tại thời điểm tạo dữ liệu mẫu.
+
+Seed cũng tạo cây tài sản:
+
+```text
+DEMO-SITE
+└── ROOM-01
+    └── RACK-01
+        └── DEMO-NODE-01
+            └── DEMO-WORKLOAD-01
+```
+
+Dữ liệu này phục vụ phát triển và kiểm thử.
+
+Chạy lại seed giữ nguyên dữ liệu đã tồn tại.
+Đổi `SEED_PASSWORD` không tự thay đổi mật khẩu tài khoản đã tạo.
+
+### 7.6. Chạy ứng dụng
+
+```powershell
 npm run start:dev
 ```
 
-Kiểm tra `GET http://localhost:3000/health` (thay cổng nếu đã đổi `PORT`):
+Theo cấu hình mặc định, Backend chạy tại:
 
-```json
-{
-  "status": "ok",
-  "service": "ar-imms-backend",
-  "timestamp": "2026-10-30T00:00:00.000Z",
-  "uptimeSeconds": 12
-}
+```text
+http://localhost:3000
 ```
 
-Thời gian và uptime thay đổi theo thực tế. Endpoint này không cần JWT,
-chỉ xác nhận Backend đang chạy, chưa kiểm tra tình trạng database.
+Kiểm tra:
+
+```text
+GET http://localhost:3000/health
+```
+
+Endpoint `/health` xác nhận Backend đang chạy,
+không thực hiện truy vấn kiểm tra database trong mỗi request.
 
 Chạy bản đã biên dịch:
 
-```bash
+```powershell
 npm run build
 npm run start:prod
 ```
 
-### 5. Trạng thái Backend hiện tại
+## 8. API hiện có
 
-- Đã có JWT và RBAC cho Administrator, Operator, Technician.
-- Tài khoản và thao tác quản lý người dùng hiện lưu trong bộ nhớ;
-  thay đổi mất khi khởi động lại. Các endpoint assets đang là bản demo.
-- Tài khoản thử nghiệm: `admin@arimms.local` / `Admin@123`,
-  `operator@arimms.local` / `Operator@123`,
-  `tech@arimms.local` / `Tech@123`. Chỉ dùng trên môi trường phát triển.
-- Telemetry, Socket.IO, Mobile AR, ticket và persistence chưa được
-  xác nhận hoàn thành trong phiên bản Backend này.
+| Phương thức | Endpoint | Quyền | Nội dung |
+|---|---|---|---|
+| GET | `/health` | Công khai | Kiểm tra hoạt động Backend |
+| POST | `/auth/login` | Công khai | Đăng nhập |
+| GET | `/auth/me` | Mọi vai trò đã đăng nhập | Xem tài khoản đang đăng nhập |
+| GET | `/users` | Administrator | Danh sách tài khoản |
+| POST | `/users` | Administrator | Tạo tài khoản |
+| PATCH | `/users/:id/role` | Administrator | Thay đổi vai trò |
+| GET | `/assets` | Mọi vai trò đã đăng nhập | Đọc Node và các quan hệ tài sản |
 
-## Kiểm thử
-
-Chạy các bài kiểm thử hiện có và kiểm tra biên dịch:
-
-```bash
-npm run test
-npm run test:e2e
-npm run build
-```
-
-Các bài e2e hiện kiểm tra đăng nhập, RBAC, endpoint health và CORS.
-Các nhóm kiểm thử cần bổ sung khi phát triển các chức năng tiếp theo:
-
-- Xác thực và phân quyền.
-- Quan hệ tài sản và dữ liệu đầu vào.
-- Tiếp nhận và truy vấn telemetry.
-- Streaming và phục hồi kết nối.
-- Cảnh báo và quy trình ticket.
-- Nhận diện marker.
-- Audit và bảo mật.
-
-## Tài liệu dự án
-
-Bộ tài liệu phân tích gồm:
-
-| Mã | Nội dung |
-|---|---|
-| AI-2 | Bối cảnh và vấn đề |
-| AI-3 | Mục tiêu dự án |
-| AI-4 | Phạm vi và giới hạn |
-| AI-5 | Tác nhân hệ thống |
-| AI-6 | Yêu cầu chức năng |
-| AI-7 | Yêu cầu phi chức năng |
-| AI-8 | Use Case |
-| AI-9 | ERD |
-
-Tài liệu kiến trúc, Screen Flow, test case và hướng dẫn
-triển khai được bổ sung theo tiến độ dự án.
-
-## Quy trình làm việc nhóm
-
-1. Lấy phiên bản mới nhất của nhánh chung.
-2. Tạo branch riêng cho công việc.
-3. Phát triển và kiểm thử.
-4. Push branch lên GitHub.
-5. Tạo Pull Request.
-6. Review và xử lý góp ý trước khi merge.
-
-Ví dụ tên branch:
+Các endpoint được bảo vệ yêu cầu header:
 
 ```text
-feature/rbac
-feature/telemetry
-fix/token-validation
-docs/ai-7
+Authorization: Bearer <access-token>
 ```
 
-Không push thông tin bí mật hoặc file môi trường cá nhân.
-Nhánh đích của Pull Request tuân theo quy ước của nhóm.
+Các endpoint tài sản chưa triển khai:
 
-## Giới hạn
+| Phương thức | Endpoint | Vai trò được phép gọi | Kết quả hiện tại |
+|---|---|---|---|
+| POST | `/assets` | Administrator, Operator | HTTP 501 |
+| PUT | `/assets/:id` | Administrator, Operator | HTTP 501 |
+| DELETE | `/assets/:id` | Administrator | HTTP 501 |
 
-- Đánh giá trên testbed, chưa triển khai vào Data Center thực tế.
+Người dùng không có quyền sẽ nhận HTTP 403;
+request thiếu token hoặc token không hợp lệ sẽ nhận HTTP 401.
+
+## 9. Kiểm thử
+
+Chạy trong thư mục `backend/`:
+
+```powershell
+npm run build
+npm test
+npm run test:e2e
+```
+
+Kiểm thử e2e cần database phát triển đã migrate và seed.
+`SEED_PASSWORD` phải trùng mật khẩu của các tài khoản mẫu đã tạo.
+
+Các nhóm kiểm tra hiện có:
+
+- Đăng nhập và từ chối mật khẩu sai.
+- Từ chối request thiếu token hoặc token không hợp lệ.
+- Phân quyền truy cập tài khoản và tài sản.
+- Không trả password hash trong danh sách tài khoản.
+- Truy vấn quan hệ Node → Rack → Room → Site và Workload.
+- Endpoint health và CORS.
+
+Khóa ngoại, khóa duy nhất và ràng buộc sức chứa Rack
+đã được kiểm tra thủ công trong database phát triển.
+
+## 10. Tài liệu
+
+Tài liệu phân tích được lưu trong [`docs/srs/`](docs/srs/).
+
+Nội dung phân tích gồm:
+
+- Bối cảnh và vấn đề.
+- Mục tiêu dự án.
+- Phạm vi và giới hạn.
+- Tác nhân hệ thống.
+- Yêu cầu chức năng.
+- Yêu cầu phi chức năng.
+- Use Case.
+- ERD.
+
+Sơ đồ, báo cáo sprint và hướng dẫn được bổ sung theo tiến độ.
+
+## 11. Quy trình làm việc nhóm
+
+Mỗi thành viên sử dụng database phát triển riêng,
+tạo branch theo task và gửi Pull Request vào `main`.
+
+Trước khi nhận task mới, lưu công việc đang làm,
+sau đó cập nhật nhánh chung:
+
+```powershell
+git switch main
+git pull origin main
+git switch -c feature/AI-XX-task-name
+```
+
+Sau khi hoàn thành:
+
+1. Build và chạy kiểm thử phù hợp.
+2. Cập nhật tài liệu và `.env.example` nếu có cấu hình mới.
+3. Kiểm tra danh sách file thay đổi.
+4. Commit và push branch.
+5. Tạo Pull Request, liên kết task Jira và kết quả kiểm thử.
+6. Review trước khi merge vào `main`.
+
+Không commit:
+
+- `node_modules/`
+- `dist/`
+- `.env`
+- Mật khẩu, token và khóa bí mật
+
+Commit `package.json`, `package-lock.json`,
+migration và cấu hình mẫu cần thiết để tái tạo môi trường.
+
+## 12. Giới hạn dự án
+
+- Đánh giá trên Mini Data Center Testbed.
+- Chưa xác nhận khả năng vận hành trong Data Center thực tế.
 - Khả năng thu thập metric phụ thuộc thiết bị và quyền truy cập.
-- Mobile AR hướng tới Android và marker đã đăng ký.
-- Phân tích điện năng/PUE cần dữ liệu đầu vào phù hợp.
-- Dữ liệu mô phỏng phải được ghi rõ.
-- Không bao gồm tự động sửa chữa phần cứng hoặc
-  điều khiển từ xa không giới hạn.
-
-## Quản lý công việc
-
-[Jira — AR-IMMS](https://phamvanut12121958.atlassian.net/jira/software/projects/AI/boards/2/backlog)
+- Mobile AR định hướng Android
