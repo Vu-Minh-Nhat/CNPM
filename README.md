@@ -127,61 +127,102 @@ rằng hệ thống đã đạt tất cả yêu cầu.
 
 ### 1. Tải mã nguồn
 
-Thay các giá trị trong dấu `<...>` bằng thông tin repository:
+Sử dụng Node.js 24 LTS (từ 24.15 trở lên) và npm:
 
 ```bash
-git clone <repository-url>
-cd <repository-folder>
+git clone https://github.com/Vu-Minh-Nhat/CNPM.git
+cd CNPM
 ```
 
-Nếu Backend nằm trong thư mục con, chuyển vào thư mục
-chứa `package.json` của Backend trước khi chạy lệnh.
+Backend hiện nằm ngay tại thư mục gốc của repository, nơi có `package.json`.
 
 ### 2. Cài dependency
 
-Sử dụng package manager tương ứng với lockfile của repository.
-
-Ví dụ, nếu dự án sử dụng npm:
+Chạy theo phiên bản trong `package-lock.json`:
 
 ```bash
-npm install
+npm ci
 ```
 
 ### 3. Cấu hình môi trường
 
-- Thiết lập kết nối database.
-- Thiết lập cấu hình JWT.
-- Thiết lập các giá trị môi trường mà ứng dụng yêu cầu.
-- Nếu repository có `.env.example`, sao chép thành `.env`
-  và điền giá trị phù hợp.
-- Chạy migration theo hướng dẫn và công cụ database
-  được sử dụng trong repository.
+Trong PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+```
+
+Trên macOS/Linux, dùng `cp .env.example .env`. Dán chuỗi vừa tạo vào
+`JWT_SECRET` trong `.env`; không chia sẻ chuỗi này.
+
+| Biến | Cách sử dụng |
+|---|---|
+| `NODE_ENV` | `development` khi chạy cục bộ; `production` khi triển khai |
+| `PORT` | Cổng Backend, mặc định `3000` |
+| `CORS_ORIGINS` | Origin Web được phép gọi API, phân cách bằng dấu phẩy, không có dấu `/` cuối |
+| `JWT_SECRET` | Khóa ký token; bắt buộc khi chạy production |
+| `DATABASE_URL` | Chuỗi kết nối PostgreSQL dùng cho `npm run db:check` |
+| `OBSERVE_APP_KEY`, `OBSERVE_APP_SECRET` | Tùy chọn; chỉ bật Nest Observe khi có đủ hai giá trị |
+
+Ví dụ `CORS_ORIGINS=http://localhost:3001,http://localhost:5173`.
+Nếu Web cũng chạy cổng 3000, đổi cổng Web hoặc Backend để tránh trùng.
+
+PostgreSQL đã có driver `pg`. Khi có database, cấu hình
+`DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE` rồi chạy:
+
+```bash
+npm run db:check
+```
+
+Lệnh chỉ kiểm tra kết nối bằng `SELECT 1`, không tạo bảng hoặc sửa dữ liệu.
+Schema, migration và lưu trữ nghiệp vụ sẽ được triển khai trong AI-29.
+Backend hiện khởi động được khi chưa cấu hình database.
 
 Không đưa mật khẩu, token, khóa riêng hoặc chứng thư
 có thông tin bí mật lên GitHub.
 
 ### 4. Chạy ứng dụng
 
-Xem các script hiện có:
-
-```bash
-npm run
-```
-
-Nếu `package.json` có script `start:dev`, chạy:
-
 ```bash
 npm run start:dev
 ```
 
-Cổng và địa chỉ truy cập được xác định theo cấu hình
-và thông báo khi ứng dụng khởi động.
+Kiểm tra `GET http://localhost:3000/health` (thay cổng nếu đã đổi `PORT`):
+
+```json
+{
+  "status": "ok",
+  "service": "ar-imms-backend",
+  "timestamp": "2026-10-30T00:00:00.000Z",
+  "uptimeSeconds": 12
+}
+```
+
+Thời gian và uptime thay đổi theo thực tế. Endpoint này không cần JWT,
+chỉ xác nhận Backend đang chạy, chưa kiểm tra tình trạng database.
+
+Chạy bản đã biên dịch:
+
+```bash
+npm run build
+npm run start:prod
+```
+
+### 5. Trạng thái Backend hiện tại
+
+- Đã có JWT và RBAC cho Administrator, Operator, Technician.
+- Tài khoản và thao tác quản lý người dùng hiện lưu trong bộ nhớ;
+  thay đổi mất khi khởi động lại. Các endpoint assets đang là bản demo.
+- Tài khoản thử nghiệm: `admin@arimms.local` / `Admin@123`,
+  `operator@arimms.local` / `Operator@123`,
+  `tech@arimms.local` / `Tech@123`. Chỉ dùng trên môi trường phát triển.
+- Telemetry, Socket.IO, Mobile AR, ticket và persistence chưa được
+  xác nhận hoàn thành trong phiên bản Backend này.
 
 ## Kiểm thử
 
-Sử dụng các script kiểm thử được khai báo trong `package.json`.
-
-Ví dụ, nếu repository có các script tương ứng:
+Chạy các bài kiểm thử hiện có và kiểm tra biên dịch:
 
 ```bash
 npm run test
@@ -189,7 +230,8 @@ npm run test:e2e
 npm run build
 ```
 
-Các nhóm kiểm thử chính:
+Các bài e2e hiện kiểm tra đăng nhập, RBAC, endpoint health và CORS.
+Các nhóm kiểm thử cần bổ sung khi phát triển các chức năng tiếp theo:
 
 - Xác thực và phân quyền.
 - Quan hệ tài sản và dữ liệu đầu vào.
