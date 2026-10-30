@@ -1,0 +1,155 @@
+# Checklist dự án AR-IMMS
+
+Checklist phản ánh tiến độ thực hiện.
+Trạng thái task và người phụ trách được quản lý trên Jira.
+
+## Sprint 1 — Phân tích yêu cầu và thiết kế hệ thống
+### AI-2 — Bối cảnh và vấn đề
+- [X] Giới thiệu đề tài AR-IMMS.
+- [X] Phân tích vấn đề giám sát và bảo trì hạ tầng.
+- [X] Mô tả môi trường hoạt động và Mini Data Center Testbed.
+- [X] Xác định người dùng và các hệ thống tương tác.
+- [X] Hoàn thiện sơ đồ ngữ cảnh và phần giải thích.
+- [X] Lưu tài liệu Markdown và hình minh họa.
+
+### AI-3 — Mục tiêu dự án
+- [X] Xác định mục tiêu tổng quát.
+- [X] Xác định các mục tiêu cụ thể.
+- [X] Xác định kết quả bàn giao và tiêu chí đánh giá.
+- [X] Bảo đảm mục tiêu phù hợp với phạm vi đề tài.
+
+### AI-4 — Phạm vi và giới hạn
+- [X] Xác định các chức năng nằm trong phạm vi.
+- [X] Xác định Limitations & Exclusions.
+- [X] Nêu rõ phạm vi Web, Mobile AR và Collector Agent.
+- [X] Nêu các giả định và phụ thuộc.
+- [X] Phân biệt dữ liệu thực và dữ liệu mô phỏng.
+
+### AI-5 — Tác nhân hệ thống
+- [X] Mô tả System Administrator.
+- [X] Mô tả System Operator.
+- [X] Mô tả Technician.
+- [X] Mô tả Collector Agent và các tác nhân ngoài liên quan.
+- [X] Xác định trách nhiệm và quyền của từng tác nhân.
+
+### AI-6 — Yêu cầu chức năng
+- [X] Tổng hợp user requirements theo từng vai trò.
+- [X] Mô tả các nhóm chức năng chính.
+- [X] Gán mã yêu cầu để phục vụ truy vết.
+- [X] Xác định đầu vào, kết quả và quyền thực hiện.
+- [X] Phân biệt chức năng giao diện và chức năng không có giao diện.
+- [X] Kiểm tra tính nhất quán với mục tiêu và phạm vi.
+
+### AI-7 — Yêu cầu phi chức năng
+- [X] Xác định yêu cầu hiệu năng và cập nhật telemetry.
+- [X] Xác định yêu cầu mất kết nối và dữ liệu cũ.
+- [X] Xác định yêu cầu xác thực, phân quyền và bảo mật Agent.
+- [X] Xác định yêu cầu audit và toàn vẹn dữ liệu.
+- [X] Xác định yêu cầu nền tảng và khả năng cấu hình.
+- [X] Bổ sung tiêu chí kiểm chứng cho các yêu cầu.
+
+### AI-8 — Use Case
+- [X] Liệt kê các Use Case theo tác nhân.
+- [X] Vẽ sơ đồ Use Case tổng quát.
+- [X] Mô tả luồng chính và luồng thay thế của Use Case quan trọng.
+- [X] Xác định điều kiện trước và sau.
+- [X] Đối chiếu Use Case với yêu cầu chức năng và phân quyền.
+
+### AI-9 — ERD
+- [X] Xác định các thực thể theo phạm vi đề tài.
+- [X] Thể hiện quan hệ và số lượng giữa các thực thể.
+- [X] Mô tả tài khoản, vai trò và cây tài sản.
+- [X] Mô tả các thực thể giám sát và bảo trì liên quan.
+- [X] Giải thích quan hệ, quy tắc và giả định thiết kế.
+- [X] Lưu hình ERD và file nguồn sơ đồ.
+- [X] Phân biệt ERD tổng thể với các bảng đã triển khai thực tế.
+
+### Kiểm tra và bàn giao Sprint 1
+- [X] Nội dung AI-2 đến AI-9 thống nhất với nhau.
+- [X] Thuật ngữ và tên vai trò được sử dụng nhất quán.
+- [X] File Markdown đọc được trên GitHub.
+- [X] Hình minh họa hiển thị đúng, không lỗi đường dẫn.
+- [X] Tài liệu được các thành viên review.
+- [X] Tài liệu và sơ đồ được đưa lên GitHub.
+- [X] Viết báo cáo Sprint 1.
+## Sprint 2 — Nền tảng Backend
+
+### AI-27 — Khởi tạo Backend
+- [x] Khởi tạo NestJS và TypeScript.
+- [x] Cấu hình biến môi trường, PORT và CORS.
+- [x] Bổ sung endpoint `/health`.
+- [x] Bổ sung driver PostgreSQL và lệnh kiểm tra kết nối.
+- [x] Build và kiểm thử thành công.
+- [x] Merge vào main.
+
+### AI-29 — Database và migration
+- [x] Tích hợp PostgreSQL và TypeORM.
+- [x] Tạo migration cho tài khoản, vai trò và cây tài sản.
+- [x] Thiết lập khóa ngoại, UNIQUE và CHECK.
+- [x] Tạo dữ liệu mẫu.
+- [x] Kiểm tra chạy lại seed không tạo dữ liệu trùng.
+- [x] Truy vấn tài khoản và tài sản từ Backend.
+- [x] Kiểm tra các ràng buộc dữ liệu.
+- [x] Build, unit test và e2e test đạt.
+- [x] Bổ sung hướng dẫn cài đặt.
+- [x] Merge vào main.
+
+### AI-30 — Xác thực JWT
+- [x] API đăng nhập trả access token.
+- [x] Kiểm tra mật khẩu bằng bcrypt.
+- [x] Auth Guard bảo vệ API.
+- [x] Phân quyền RBAC.
+- [x] Xử lý lỗi 401 và 403.
+- [ ] Hoàn thiện và tích hợp JWT Strategy.
+- [ ] Bổ sung Swagger UI hoặc Postman collection.
+- [ ] Kiểm thử lại đầy đủ tiêu chí AI-30.
+- [ ] Review và merge phần bổ sung.
+
+## Sprint 3 — Web Management Portal
+
+### Khởi tạo Frontend
+- [ ] Khởi tạo Next.js trong `frontend/`.
+- [ ] Cấu hình địa chỉ Backend qua biến môi trường.
+- [ ] Bổ sung `.env.example`.
+- [ ] Viết hướng dẫn cài đặt và chạy.
+
+### Layout và điều hướng
+- [ ] Xây dựng header, sidebar và vùng nội dung.
+- [ ] Hiển thị menu theo vai trò.
+- [ ] Hiển thị trang không có quyền truy cập.
+
+### Đăng nhập và xác thực
+- [ ] Xây dựng form đăng nhập.
+- [ ] Kiểm tra dữ liệu đầu vào.
+- [ ] Tích hợp `POST /auth/login`.
+- [ ] Tích hợp `GET /auth/me`.
+- [ ] Gửi JWT khi gọi API được bảo vệ.
+- [ ] Xử lý đăng xuất, hết phiên, lỗi 401 và 403.
+
+### Dashboard
+- [ ] Hiển thị thống kê từ dữ liệu tài sản thật.
+- [ ] Ghi rõ phạm vi thống kê.
+- [ ] Xử lý trạng thái tải, rỗng và lỗi.
+
+### Tài sản
+- [ ] Tích hợp `GET /assets`.
+- [ ] Hiển thị danh sách Node.
+- [ ] Hiển thị chi tiết Rack, Room, Site và Workload.
+- [ ] Bổ sung tìm kiếm và bộ lọc.
+- [ ] Xử lý dữ liệu thiếu hoặc danh sách rỗng.
+
+### Quản lý tài khoản
+- [ ] Administrator xem danh sách tài khoản.
+- [ ] Administrator tạo tài khoản.
+- [ ] Administrator thay đổi vai trò.
+- [ ] Hiển thị lỗi dữ liệu đầu vào và email trùng.
+- [ ] Kiểm tra Operator/Technician không truy cập được.
+
+### Kiểm thử và bàn giao
+- [ ] Kiểm tra luồng sử dụng của cả ba vai trò.
+- [ ] Kiểm tra truy cập trực tiếp bằng URL.
+- [ ] Kiểm tra khi Backend không khả dụng.
+- [ ] Hoàn thiện README Frontend.
+- [ ] Lưu test case và minh chứng.
+- [ ] Review và merge các Pull Request.
+- [ ] Hoàn thiện báo cáo Sprint 3.
