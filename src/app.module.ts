@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
@@ -11,15 +12,21 @@ import { HealthModule } from './health/health.module.js';
 import { UsersModule } from './users/users.module.js'; // [RBAC]
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
+export const observeEnabled = Boolean(
+  process.env.OBSERVE_APP_KEY && process.env.OBSERVE_APP_SECRET,
+);
 
 @Module({
   imports: [
-   
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'backend',
-    }),
+    ...(observeEnabled
+      ? [
+          ObserveModule.forRoot({
+            appKey: process.env.OBSERVE_APP_KEY!,
+            appSecret: process.env.OBSERVE_APP_SECRET!,
+            serviceId: 'backend',
+          }),
+        ]
+      : []),
     HealthModule,
     AuthModule, // [RBAC]
     UsersModule, // [RBAC]
@@ -28,7 +35,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   controllers: [AppController],
   providers: [
     AppService,
-    
+
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
