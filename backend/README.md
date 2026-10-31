@@ -232,3 +232,113 @@ Không commit `.env`, mật khẩu, token, `node_modules` hoặc `dist`.
 ## 9. Quản lý công việc
 
 [Jira — AR-IMMS](https://phamvanut12121958.atlassian.net/jira/software/projects/AI/boards/2/backlog)
+## API quản lý hạ tầng
+
+Các API yêu cầu JWT access token:
+
+```text
+Authorization: Bearer <access-token>
+```
+
+| Nhóm API | Danh sách | Chi tiết |
+|---|---|---|
+| Site | GET /sites | GET /sites/:id |
+| Room | GET /rooms | GET /rooms/:id |
+| Rack | GET /racks | GET /racks/:id |
+| Server | GET /servers | GET /servers/:id |
+
+Mỗi nhóm hỗ trợ:
+- POST vào đường dẫn danh sách để tạo.
+- PATCH vào đường dẫn chi tiết để cập nhật.
+- DELETE vào đường dẫn chi tiết để xóa.
+
+### Phân quyền
+
+| Thao tác | Administrator | Operator | Technician |
+|---|---|---|---|
+| Xem | Có | Có | Có |
+| Tạo, cập nhật | Có | Có | Không |
+| Xóa | Có | Không | Không |
+
+### Dữ liệu tạo mới
+
+Site:
+
+```json
+{
+  "code": "SITE-01",
+  "name": "Trung tâm dữ liệu"
+}
+```
+
+Room:
+
+```json
+{
+  "siteId": "<UUID của Site>",
+  "code": "ROOM-01",
+  "name": "Phòng máy chủ"
+}
+```
+
+Rack:
+
+```json
+{
+  "roomId": "<UUID của Room>",
+  "code": "RACK-01",
+  "name": "Tủ rack 01",
+  "capacityU": 42
+}
+```
+
+Server:
+
+```json
+{
+  "rackId": "<UUID của Rack>",
+  "code": "SERVER-01",
+  "name": "Máy chủ 01",
+  "serialNumber": "SN-001"
+}
+```
+
+Backend tự sinh UUID. Tạo theo thứ tự Site → Room → Rack → Server.
+Endpoint `/servers` sử dụng bảng `nodes`.
+
+### Phản hồi lỗi
+
+- 400: dữ liệu không hợp lệ hoặc tham chiếu cha không tồn tại.
+- 401: thiếu token, token không hợp lệ hoặc hết hạn.
+- 403: tài khoản không có quyền.
+- 404: tài sản không tồn tại.
+- 409: dữ liệu trùng hoặc tài sản còn dữ liệu con tham chiếu.
+
+## Kiểm thử bằng Swagger
+
+Khi Backend chạy ở cổng 3000, mở:
+
+```text
+http://localhost:3000/api
+```
+
+1. Gọi POST /auth/login bằng tài khoản đã seed.
+2. Copy accessToken trả về.
+3. Chọn Authorize và dán token, không thêm chữ Bearer.
+4. Gọi GET /auth/me để xác nhận danh tính.
+5. Thử các API theo quyền của tài khoản.
+6. Chọn Logout trong Authorize rồi gọi lại /auth/me:
+   kết quả phải là 401.
+
+Không đưa mật khẩu hoặc token thật vào tài liệu và ảnh minh chứng.
+
+Khi gọi API bằng PowerShell với dữ liệu tiếng Việt,
+gửi JSON dưới dạng byte UTF-8 cùng Content-Type:
+`application/json; charset=utf-8`.
+
+## Minh chứng kiểm thử Sprint 2
+
+Xem [báo cáo kiểm thử](..docs/srs/testing/sprint-2-backend.md).
+
+Các endpoint ghi `/assets` tổng quát vẫn trả 501.
+CRUD hạ tầng sử dụng `/sites`, `/rooms`, `/racks`, `/servers`.

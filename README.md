@@ -109,7 +109,9 @@ Phiên bản dependency cụ thể được khai báo trong
 - Báo cáo năng lượng và audit đầy đủ.
 - Triển khai và đánh giá toàn hệ thống.
 
-Các endpoint tạo, sửa và xóa tài sản hiện trả HTTP 501
+CRUD hạ tầng đã được triển khai qua `/sites`, `/rooms`,
+`/racks` và `/servers`. Các endpoint ghi `/assets`
+tổng quát vẫn trả HTTP 501.
 khi người gọi có quyền truy cập.
 
 ## 7. Khởi chạy Backend
