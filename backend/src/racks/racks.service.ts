@@ -64,24 +64,60 @@ export class RacksService {
     return rack;
   }
 
-  async update(id: string, updateRackDto: UpdateRackDto) {
-    const rack = await this.findOne(id);
-    this.repository.merge(rack, updateRackDto);
-
-    try {
-      return await this.repository.save(rack);
-    } catch (error) {
-      const code = (error as { code?: string }).code;
-
-      if (code === '23505') {
-        throw new ConflictException('Mã Rack đã tồn tại');
-      }
-      if (code === '23503') {
-        throw new BadRequestException('Room không tồn tại');
-      }
-      throw error;
-    }
+async update(id: string, updateRackDto: UpdateRackDto) {
+  if (
+    !updateRackDto ||
+    Object.keys(updateRackDto).length === 0
+  ) {
+    throw new BadRequestException(
+      'Cần cung cấp ít nhất một trường để cập nhật',
+    );
   }
+
+  await this.findOne(id);
+
+  try {
+    await this.repository.update(
+      { id },
+      updateRackDto,
+    );
+  } catch (error) {
+    const databaseError = error as {
+      code?: string;
+      driverError?: { code?: string };
+    } | null;
+
+    const code =
+      databaseError?.driverError?.code ??
+      databaseError?.code;
+
+    if (code === '23505') {
+      throw new ConflictException(
+        'Mã Rack đã tồn tại trong Room',
+      );
+    }
+
+    if (code === '23503') {
+      throw new BadRequestException(
+        'Room không tồn tại',
+      );
+    }
+
+    if (
+      code === '23502' ||
+      code === '23514' ||
+      code === '22001'
+    ) {
+      throw new BadRequestException(
+        'Dữ liệu Rack không hợp lệ',
+      );
+    }
+
+    throw error;
+  }
+
+  return this.findOne(id);
+}
 
   async remove(id: string) {
     const rack = await this.findOne(id);

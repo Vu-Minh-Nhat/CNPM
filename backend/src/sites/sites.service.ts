@@ -1,10 +1,11 @@
 import {
+  ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
-  ConflictException,
-  InternalServerErrorException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
-
+import { randomUUID } from 'node:crypto';
 import { DatabaseService } from '../database/database.service.js';
 import { SiteSchema } from '../database/entities.js';
 import { CreateSiteDto } from './dto/create-site.dto.js';
@@ -12,36 +13,56 @@ import { UpdateSiteDto } from './dto/update-site.dto.js';
 
 @Injectable()
 export class SitesService {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    @Inject(DatabaseService)
+    private readonly database: DatabaseService,
+  ) {}
 
   private get repository() {
-    if (!this.database.source?.isInitialized) {
-      throw new InternalServerErrorException('Database chưa được kết nối');
+    const source = this.database.source;
+
+    if (!source?.isInitialized) {
+      throw new ServiceUnavailableException(
+        'Database chưa được kết nối',
+      );
     }
-    return this.database.source.getRepository(SiteSchema);
+
+    return source.getRepository(SiteSchema);
   }
 
   async create(createSiteDto: CreateSiteDto) {
     try {
-      const site = this.repository.create(createSiteDto);
+      const site = this.repository.create({
+        id: randomUUID(),
+        code: createSiteDto.code,
+        name: createSiteDto.name,
+      });
+
       return await this.repository.save(site);
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException('Mã Site đã tồn tại');
       }
+
       throw error;
     }
   }
 
   async findAll() {
-    return this.repository.find({ order: { name: 'ASC' } });
+    return this.repository.find({
+      order: { name: 'ASC' },
+    });
   }
 
   async findOne(id: string) {
     const site = await this.repository.findOneBy({ id });
+
     if (!site) {
-      throw new NotFoundException(`Không tìm thấy Site: ${id}`);
+      throw new NotFoundException(
+        `Không tìm thấy Site: ${id}`,
+      );
     }
+
     return site;
   }
 
@@ -55,13 +76,28 @@ export class SitesService {
       if ((error as { code?: string }).code === '23505') {
         throw new ConflictException('Mã Site đã tồn tại');
       }
+
       throw error;
     }
   }
 
   async remove(id: string) {
     const site = await this.findOne(id);
-    await this.repository.remove(site);
-    return { message: 'Xóa Site thành công' };
+
+    try {
+      await this.repository.remove(site);
+
+      return {
+        message: 'Xóa Site thành công',
+      };
+    } catch (error) {
+      if ((error as { code?: string }).code === '23503') {
+        throw new ConflictException(
+          'Không thể xóa Site đang chứa Room',
+        );
+      }
+
+      throw error;
+    }
   }
 }

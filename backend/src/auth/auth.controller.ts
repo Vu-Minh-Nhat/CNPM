@@ -4,6 +4,7 @@ import { Roles } from "../common/decorators/roles.decorator.js";
 import { ALL_ROLES } from "../common/enums/role.enum.js";
 import { AuthService } from "./auth.service.js";
 import { LoginDto } from "./dto/login.dto.js";
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller("auth")
 export class AuthController {
@@ -17,7 +18,7 @@ export class AuthController {
     return this.auth.login(body?.email, body?.password);
   }
 
-  /** Xem thông tin người đang đăng nhập (mọi vai trò). */
+@ApiBearerAuth()
   @Roles(...ALL_ROLES)
   @Get("me")
   me(@Req() req: any) {
