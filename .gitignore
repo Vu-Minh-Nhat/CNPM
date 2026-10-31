@@ -57,7 +57,13 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
-
 **/node_modules/
 **/dist/
+**/build/
 **/coverage/
+**/.next/
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example

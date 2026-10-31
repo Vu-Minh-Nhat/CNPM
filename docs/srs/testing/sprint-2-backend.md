@@ -68,3 +68,42 @@ Không sử dụng tài sản thật để kiểm tra xóa.
 - Chưa đánh giá Frontend trong lần kiểm tra này.
 - Báo cáo này ghi nhận các kiểm tra đã thực hiện,
   không thay thế việc đối chiếu toàn bộ task trên Jira.
+  ## AI-33 — Kiểm tra dựng lại môi trường
+
+### Cách thực hiện
+
+- Clone mới branch `codex/fix-sprint-2` từ GitHub.
+- Commit được kiểm tra: `f6b548e`.
+- Sử dụng thư mục kiểm thử riêng.
+- Tạo database trống `arimms_sprint2_check`.
+- Tạo `.env` từ `.env.example` và cấu hình riêng.
+- Chạy Backend ở cổng 3002.
+
+### Kết quả
+
+| Kiểm tra | Kết quả |
+|---|---|
+| npm ci | Thành công |
+| Kết nối database | Thành công |
+| Build | Thành công |
+| Migration trên database mới | Thành công |
+| Seed dữ liệu mẫu | Thành công |
+| Unit test | 20 test đạt |
+| E2E test | 17 test đạt |
+| GET /health | Trả status ok |
+| Swagger /api | Truy cập được |
+| Đăng nhập tài khoản mẫu | Thành công |
+| GET /users có token | 200, có dữ liệu mẫu |
+| GET /assets có token | 200, có dữ liệu mẫu |
+
+### Phạm vi xác nhận
+
+Đã kiểm tra bản clone sạch với database mới trên cùng máy.
+Chưa trực tiếp kiểm tra trên máy thành viên khác.
+
+### Vấn đề được ghi nhận
+
+npm ci báo 11 lỗ hổng dependency:
+2 low, 4 moderate và 5 high.
+Các cảnh báo này chưa được phân tích hoặc khắc phục
+trong lần kiểm tra dựng môi trường.
