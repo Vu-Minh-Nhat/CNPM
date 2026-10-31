@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SitesController } from './sites.controller.js';
 import { SitesService } from './sites.service.js';
 
@@ -6,15 +7,26 @@ describe('SitesController', () => {
   let controller: SitesController;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const moduleRef = await Test.createTestingModule({
       controllers: [SitesController],
-      providers: [SitesService],
+      providers: [
+        {
+          provide: SitesService,
+          useValue: {
+            create: vi.fn(),
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+            update: vi.fn(),
+            remove: vi.fn(),
+          },
+        },
+      ],
     }).compile();
 
-    controller = module.get<SitesController>(SitesController);
+    controller = moduleRef.get(SitesController);
   });
 
-  it('should be defined', () => {
+  it('khởi tạo được controller với service giả lập', () => {
     expect(controller).toBeDefined();
   });
 });

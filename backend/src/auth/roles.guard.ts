@@ -30,7 +30,9 @@ export class RolesGuard implements CanActivate {
     
     // Nếu endpoint không yêu cầu Role cụ thể -> Chỉ cần đăng nhập (Token hợp lệ) là được vào
     if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
+     throw new ForbiddenException(
+     'Endpoint chưa được cấu hình quyền truy cập',
+    );
     }
 
     // 3. Lấy thông tin user từ request (đã được JwtStrategy giải mã và gắn vào req.user)

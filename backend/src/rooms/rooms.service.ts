@@ -64,24 +64,60 @@ export class RoomsService {
     return room;
   }
 
-  async update(id: string, updateRoomDto: UpdateRoomDto) {
-    const room = await this.findOne(id);
-    this.repository.merge(room, updateRoomDto);
-
-    try {
-      return await this.repository.save(room);
-    } catch (error) {
-      const code = (error as { code?: string }).code;
-
-      if (code === '23505') {
-        throw new ConflictException('Mã Room đã tồn tại');
-      }
-      if (code === '23503') {
-        throw new BadRequestException('Site không tồn tại');
-      }
-      throw error;
-    }
+async update(id: string, updateRoomDto: UpdateRoomDto) {
+  if (
+    !updateRoomDto ||
+    Object.keys(updateRoomDto).length === 0
+  ) {
+    throw new BadRequestException(
+      'Cần cung cấp ít nhất một trường để cập nhật',
+    );
   }
+
+  await this.findOne(id);
+
+  try {
+    await this.repository.update(
+      { id },
+      updateRoomDto,
+    );
+  } catch (error) {
+    const databaseError = error as {
+      code?: string;
+      driverError?: { code?: string };
+    } | null;
+
+    const code =
+      databaseError?.driverError?.code ??
+      databaseError?.code;
+
+    if (code === '23505') {
+      throw new ConflictException(
+        'Mã Room đã tồn tại trong Site',
+      );
+    }
+
+    if (code === '23503') {
+      throw new BadRequestException(
+        'Site không tồn tại',
+      );
+    }
+
+    if (
+      code === '23502' ||
+      code === '23514' ||
+      code === '22001'
+    ) {
+      throw new BadRequestException(
+        'Dữ liệu Room không hợp lệ',
+      );
+    }
+
+    throw error;
+  }
+
+  return this.findOne(id);
+}
 
   async remove(id: string) {
     const room = await this.findOne(id);

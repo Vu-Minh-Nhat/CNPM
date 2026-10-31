@@ -13,7 +13,9 @@ import {
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { ALL_ROLES, Role } from '../common/enums/role.enum.js';
 import { UsersService } from './users.service.js';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('users')
 @Roles(Role.ADMINISTRATOR)
 export class UsersController {

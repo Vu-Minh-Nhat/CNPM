@@ -12,7 +12,9 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { ALL_ROLES, Role } from '../common/enums/role.enum.js';
 import { DatabaseService } from '../database/database.service.js';
 import { NodeSchema } from '../database/entities.js';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @Controller('assets')
 export class AssetsController {
   constructor(
