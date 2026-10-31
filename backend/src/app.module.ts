@@ -11,6 +11,10 @@ import { RolesGuard } from './auth/roles.guard.js'; // [RBAC]
 import { HealthModule } from './health/health.module.js';
 import { UsersModule } from './users/users.module.js'; // [RBAC]
 import { DatabaseModule } from './database/database.module.js';
+import { SitesModule } from './sites/sites.module.js';
+import { RoomsModule } from './rooms/rooms.module.js';
+import { RacksModule } from './racks/racks.module.js';
+import { ServersModule } from './servers/servers.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 export const observeEnabled = Boolean(
@@ -32,7 +36,7 @@ export const observeEnabled = Boolean(
     HealthModule,
     AuthModule, // [RBAC]
     UsersModule, // [RBAC]
-    AssetsModule, // [RBAC]
+    AssetsModule, SitesModule, RoomsModule, RacksModule, ServersModule, // [RBAC]
   ],
   controllers: [AppController],
   providers: [

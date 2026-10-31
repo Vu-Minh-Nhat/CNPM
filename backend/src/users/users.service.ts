@@ -1,3 +1,4 @@
+
 import {
   BadRequestException,
   ConflictException,
@@ -33,7 +34,9 @@ export class UsersService {
 
   async findByEmail(email: string) {
     return this.repository().findOne({
-      where: { email: email.trim().toLowerCase() },
+      where: {
+        email: email.trim().toLowerCase(),
+      },
       select: {
         id: true,
         email: true,
@@ -45,19 +48,21 @@ export class UsersService {
   }
 
   async findById(id: string) {
-    // Token cũ hoặc ID không hợp lệ không được gửi vào cột UUID.
     const uuidPattern =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    if (!uuidPattern.test(id)) return null;
+    if (!uuidPattern.test(id)) {
+      return null;
+    }
 
     return this.repository().findOneBy({ id });
   }
 
   async list() {
-    // passwordHash bị loại theo cấu hình select: false của entity.
     return this.repository().find({
-      order: { email: 'ASC' },
+      order: {
+        email: 'ASC',
+      },
     });
   }
 
@@ -96,6 +101,7 @@ export class UsersService {
       );
 
       const { passwordHash, ...safeUser } = user;
+
       return safeUser;
     } catch (error) {
       if (
@@ -111,10 +117,45 @@ export class UsersService {
 
   async changeRole(id: string, role: Role) {
     const user = await this.findById(id);
-    if (!user) return null;
 
-    await this.repository().update({ id }, { role });
+    if (!user) {
+      return null;
+    }
+
+    await this.repository().update(
+      { id },
+      { role },
+    );
 
     return this.findById(id);
+  }
+
+  async resetPassword(id: string, newPassword: string) {
+    if (
+      typeof newPassword !== 'string' ||
+      newPassword.length < 12 ||
+      Buffer.byteLength(newPassword, 'utf8') > 72
+    ) {
+      throw new BadRequestException(
+        'Mật khẩu phải từ 12 ký tự và tối đa 72 byte',
+      );
+    }
+
+    const user = await this.findById(id);
+
+    if (!user) {
+      return null;
+    }
+
+    await this.repository().update(
+      { id },
+      {
+        passwordHash: await hash(newPassword, 10),
+      },
+    );
+
+    return {
+      message: 'Đã cập nhật mật khẩu thành công',
+    };
   }
 }
