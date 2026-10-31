@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 
 export function configureApplication(
@@ -14,4 +15,11 @@ export function configureApplication(
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+    app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 }

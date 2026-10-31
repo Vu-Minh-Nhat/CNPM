@@ -3,6 +3,7 @@ import { Public } from "../common/decorators/public.decorator.js";
 import { Roles } from "../common/decorators/roles.decorator.js";
 import { ALL_ROLES } from "../common/enums/role.enum.js";
 import { AuthService } from "./auth.service.js";
+import { LoginDto } from "./dto/login.dto.js";
 
 @Controller("auth")
 export class AuthController {
@@ -12,7 +13,7 @@ export class AuthController {
   @Public()
   @HttpCode(200)
   @Post("login")
-  async login(@Body() body: { email: string; password: string }) {
+  async login(@Body() body: LoginDto) {
     return this.auth.login(body?.email, body?.password);
   }
 
