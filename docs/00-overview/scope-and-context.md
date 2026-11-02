@@ -65,7 +65,7 @@ ranh giới Web, Mobile và Backend trong sơ đồ ngữ cảnh này.
 
 ## 6. Sơ đồ ngữ cảnh
 
-![Sơ đồ ngữ cảnh AR-IMMS](docs/srs/images/sodongucanh.png)
+![Sơ đồ ngữ cảnh AR-IMMS](../images/sodongucanh.png)
 
 Sơ đồ thể hiện AR-IMMS như một hệ thống tổng thể
 và mô tả các luồng trao đổi với tác nhân bên ngoài.
