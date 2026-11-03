@@ -5,5 +5,5 @@ trong hệ thống AR-IMMS.
 
 ## Danh mục tài liệu
 
-1. [Các tác nhân của hệ thống](01-system-actors.md)
-2. [Ma trận phân quyền](02-role-permissions.md)
+1. [Các tác nhân của hệ thống](system-actors.md)
+2. [Ma trận phân quyền](role-permissions.md)
