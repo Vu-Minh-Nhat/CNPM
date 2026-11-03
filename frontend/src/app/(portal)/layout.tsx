@@ -4,11 +4,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
+import { getCurrentUser } from "@/lib/auth";
 import {
   clearSession,
   getAccessToken,
-  getCurrentUser,
-} from "@/lib/auth";
+} from "@/lib/auth-storage";
 
 type CurrentUser = {
   email: string;
@@ -43,7 +43,7 @@ export default function PortalLayout({
           return;
         }
 
-        const currentUser = await getCurrentUser(token);
+        const currentUser = await getCurrentUser();
 
         if (!active) return;
 

@@ -3,7 +3,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { login, saveSession } from "@/lib/auth";
+import { login } from "@/lib/auth";
+import { saveSession } from "@/lib/auth-storage";
 
 export default function LoginPage() {
   const router = useRouter();
