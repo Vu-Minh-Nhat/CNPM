@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import {
   clearSession,
   getAccessToken,
-  getCurrentUser,
-} from "@/lib/auth";
+} from "@/lib/auth-storage";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function UsersPage() {
           return;
         }
 
-        const user = await getCurrentUser(token);
+        const user = await getCurrentUser();
 
         if (!active) return;
 
