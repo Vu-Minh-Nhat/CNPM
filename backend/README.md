@@ -338,7 +338,7 @@ gửi JSON dưới dạng byte UTF-8 cùng Content-Type:
 
 ## Minh chứng kiểm thử Sprint 2
 
-Xem [báo cáo kiểm thử](..docs/srs/testing/sprint-2-backend.md).
+Xem [báo cáo kiểm thử](../docs/06-testing-and-qa/sprint-2-backend.md).
 
 Các endpoint ghi `/assets` tổng quát vẫn trả 501.
 CRUD hạ tầng sử dụng `/sites`, `/rooms`, `/racks`, `/servers`.
