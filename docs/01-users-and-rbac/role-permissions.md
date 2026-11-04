@@ -173,7 +173,7 @@ trong báo cáo kiểm thử tương ứng.
 
 ## 10. Tài liệu liên quan
 
-- [Các tác nhân của hệ thống](01-system-actors.md)
-- [Phạm vi và sơ đồ ngữ cảnh](../00-overview/04-scope-and-context.md)
+- [Các tác nhân của hệ thống](system-actors.md)
+- [Phạm vi và sơ đồ ngữ cảnh](../00-overview/scope-and-context.md)
 - [Hướng dẫn Backend](../../backend/README.md)
 - [Hướng dẫn Frontend](../../frontend/README.md)

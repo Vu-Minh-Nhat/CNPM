@@ -312,7 +312,7 @@ Khóa ngoại, khóa duy nhất và ràng buộc sức chứa Rack
 
 ## 10. Tài liệu
 
-Tài liệu phân tích được lưu trong [`docs/srs/`](docs/srs/).
+Tài liệu phân tích và thiết kế được lưu trong [docs](docs/README.md).
 
 Nội dung phân tích gồm:
 

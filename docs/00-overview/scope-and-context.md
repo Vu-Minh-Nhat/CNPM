@@ -86,6 +86,6 @@ trong các tài liệu thiết kế tương ứng.
 
 ## 8. Tài liệu liên quan
 
-- [Bối cảnh và vấn đề cần giải quyết](01-project-background.md)
-- [Mục tiêu dự án](02-project-objectives.md)
-- [Các khái niệm chính](03-core-domain-concepts.md)
+- [Bối cảnh và vấn đề cần giải quyết](project-background.md)
+- [Mục tiêu dự án](project-objectives.md)
+- [Các khái niệm chính](core-domain-concepts.md)
