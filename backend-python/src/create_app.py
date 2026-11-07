@@ -1,13 +1,19 @@
 import os
-from src.api.controllers.users_controller import create_users_blueprint
 from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
+from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
+from src.api.controllers.racks_controller import create_racks_blueprint
+from src.api.controllers.rooms_controller import create_rooms_blueprint
+from src.api.controllers.servers_controller import create_servers_blueprint
+from src.api.controllers.sites_controller import create_sites_blueprint
+from src.api.controllers.users_controller import create_users_blueprint
+from src.api.error_handlers import register_error_handlers
 from src.dependency_container import build_container
 from src.infrastructure.databases.database import Database
 
@@ -17,6 +23,7 @@ def create_app() -> Flask:
     load_dotenv(backend_directory / ".env")
 
     app = Flask(__name__)
+    register_error_handlers(app)
 
     database_url = os.getenv("DATABASE_URL", "").strip()
 
@@ -68,10 +75,47 @@ def create_app() -> Flask:
             session_service=container.session_service,
         )
     )
+
     app.register_blueprint(
         create_users_blueprint(
             users_service=container.users_service,
             session_service=container.session_service,
         )
     )
+
+    app.register_blueprint(
+        create_assets_blueprint(
+            assets_service=container.assets_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_sites_blueprint(
+            sites_service=container.sites_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_rooms_blueprint(
+            rooms_service=container.rooms_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_racks_blueprint(
+            racks_service=container.racks_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_servers_blueprint(
+            servers_service=container.servers_service,
+            session_service=container.session_service,
+        )
+    )
+
     return app
