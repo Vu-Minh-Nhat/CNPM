@@ -320,5 +320,28 @@ Backend lõi đã được chuyển sang Flask và kiểm tra với database m�
 Các chức năng telemetry, cảnh báo, lịch sử dữ liệu, ticket và hỗ trợ AR
 được phát triển tiếp theo kế hoạch Jira.
 
-Việc thay thế Backend NestJS chính thức được thực hiện sau khi nhóm
-review và kiểm tra chạy từ clone sạch.
+Backend hiện tại sử dụng Python Flask.
+Mã Backend NestJS cũ được lưu trong lịch sử Git.
+## Script hỗ trợ PostgreSQL trên Windows
+
+File `scripts/run_postgres.sh` kiểm tra PostgreSQL, thử khởi động
+service `postgresql-x64-16` khi cần và tạo database nếu chưa tồn tại.
+
+Yêu cầu PostgreSQL 16 và Git Bash. Chạy tại thư mục `backend-python`:
+
+```bash
+bash scripts/run_postgres.sh arimms_python
+```
+
+Nếu dùng PowerShell, gọi Bash bằng đường dẫn cài Git trên máy.
+Ví dụ:
+
+```powershell
+& "D:\cuocdoimoi\Git\bin\bash.exe" ./scripts/run_postgres.sh arimms_python
+```
+
+Tên database được truyền bằng tham số đầu tiên.
+Script giữ nguyên database đã tồn tại và không tự chạy migration hoặc seed.
+
+Nếu cần khởi động Windows Service, có thể phải chạy Terminal
+với quyền Administrator.

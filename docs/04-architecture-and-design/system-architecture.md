@@ -1,4 +1,4 @@
-# Kiến trúc hệ thống AR-IMMS
+﻿# Kiến trúc hệ thống AR-IMMS
 
 ## 1. Mục đích
 
@@ -29,7 +29,7 @@ flowchart LR
 
     Web["Web Portal — Next.js"]
     Mobile["Mobile AR — React Native"]
-    Backend["Backend — NestJS"]
+    Backend["Backend — Flask"]
     DB[("PostgreSQL")]
 
     Agent["Collector Agent"]
@@ -60,7 +60,7 @@ Chi tiết endpoint, giao thức Agent và sự kiện Socket.IO
 |---|---|---|
 | Web Portal | Next.js, TypeScript | Giao diện quản trị, quản lý tài sản, giám sát và điều phối công việc |
 | Mobile AR | React Native trên Android, tích hợp AR theo thiết kế | Nhận diện marker, tra cứu thiết bị và cập nhật kết quả bảo trì |
-| Backend | NestJS, TypeScript | Xác thực, phân quyền, xử lý nghiệp vụ và cung cấp dữ liệu |
+| Backend | Python, Flask | Xác thực, phân quyền, xử lý nghiệp vụ và cung cấp dữ liệu |
 | Cơ sở dữ liệu | PostgreSQL | Lưu dữ liệu nghiệp vụ; tổ chức lưu telemetry theo thiết kế dữ liệu |
 | Collector Agent | Theo thiết kế Agent | Thu thập, gắn định danh và gửi dữ liệu vận hành |
 | Testbed | Máy tính vật lý và container | Cung cấp môi trường triển khai, phát sinh tải và kiểm chứng |
@@ -156,7 +156,7 @@ theo quy tắc nghiệp vụ đã thống nhất.
 | Thành phần | Địa chỉ mặc định trên máy phát triển |
 |---|---|
 | Web Portal | http://localhost:3001 |
-| Backend | http://localhost:3000 |
+| Backend | http://localhost:5000 |
 | PostgreSQL | localhost:5432 hoặc cổng được cấu hình |
 
 Các địa chỉ trên chỉ là cấu hình phát triển.

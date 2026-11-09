@@ -1,4 +1,4 @@
-# Ma trận phân quyền hệ thống AR-IMMS
+﻿# Ma trận phân quyền hệ thống AR-IMMS
 
 ## 1. Mục đích
 
@@ -175,5 +175,5 @@ trong báo cáo kiểm thử tương ứng.
 
 - [Các tác nhân của hệ thống](system-actors.md)
 - [Phạm vi và sơ đồ ngữ cảnh](../00-overview/scope-and-context.md)
-- [Hướng dẫn Backend](../../backend/README.md)
+- [Hướng dẫn Backend](../../backend-python/README.md)
 - [Hướng dẫn Frontend](../../frontend/README.md)

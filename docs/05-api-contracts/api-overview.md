@@ -1,4 +1,4 @@
-# Tổng quan API Backend AR-IMMS
+﻿# Tổng quan API Backend AR-IMMS
 
 ## 1. Mục đích
 
@@ -12,16 +12,16 @@ Tài liệu liên quan:
 - AI-32: API quản lý Site, Room, Rack và Server.
 - AI-33: Kiểm thử API và cập nhật tài liệu kỹ thuật.
 
-Danh sách dưới đây mô tả các endpoint hiện có.
+Danh sách dưới đây mô tả các endpoint hiện  có.
 Kết quả kiểm thử được ghi riêng trong báo cáo kiểm thử.
 
 ## 2. Địa chỉ và công cụ
 
 | Thành phần | Địa chỉ mặc định khi phát triển |
 |---|---|
-| Backend | http://localhost:3000 |
-| Swagger UI | http://localhost:3000/api |
-| OpenAPI JSON | http://localhost:3000/api-json |
+| Backend | http://localhost:5000 |
+| Swagger UI | http://localhost:5000/docs/ |
+| OpenAPI JSON | http://localhost:5000/openapi.json |
 | Web Portal | http://localhost:3001 |
 
 Địa chỉ thực tế phụ thuộc cấu hình môi trường.
@@ -282,21 +282,16 @@ Ví dụ: xóa Site còn Room trả về 409.
 
 ## 7. API tổng hợp tài sản
 
+## 7. API tổng hợp tài sản
+
 | Method | Endpoint | Phạm vi |
-|---|---|---|
-| GET | /assets | Tra cứu Node và các quan hệ tài sản; cả ba vai trò |
-| POST | /assets | Chưa triển khai xử lý ghi; Administrator, Operator được qua bước kiểm tra vai trò |
-| PUT | /assets/:id | Chưa triển khai xử lý ghi; Administrator, Operator được qua bước kiểm tra vai trò |
-| DELETE | /assets/:id | Chưa triển khai xử lý ghi; chỉ Administrator được qua bước kiểm tra vai trò |
+| --- | --- | --- |
+| GET | /assets | Tra cứu Node cùng Rack, Room, Site và Workload; cả ba vai trò đã đăng nhập |
 
-Các thao tác ghi tại /assets hiện trả về 501
-sau khi người gọi vượt qua bước xác thực và phân quyền.
+Các thao tác tạo, sửa và xóa được thực hiện qua
+/sites, /rooms, /racks và /servers.
 
-Người thiếu quyền vẫn bị từ chối bằng 403.
-Người chưa xác thực bị từ chối bằng 401.
-
-Sử dụng /sites, /rooms, /racks và /servers
-cho các thao tác CRUD đã triển khai.
+Backend Flask hiện không cung cấp endpoint ghi dữ liệu tại /assets.
 
 ## 8. Mã trạng thái
 
@@ -309,7 +304,7 @@ cho các thao tác CRUD đã triển khai.
 | 403 | Đã xác thực nhưng không có quyền |
 | 404 | Không tìm thấy tài nguyên yêu cầu |
 | 409 | Xung đột dữ liệu, mã trùng hoặc xóa bản ghi còn phụ thuộc |
-| 501 | Endpoint đã có nhưng thao tác chưa được triển khai |
+
 
 Thông báo lỗi cụ thể phụ thuộc endpoint.
 Frontend nên xử lý theo mã trạng thái
@@ -318,7 +313,7 @@ và cung cấp thông báo phù hợp cho người sử dụng.
 ## 9. Kiểm thử bằng Swagger
 
 1. Khởi động Backend.
-2. Mở /api.
+2. Mở /docs/.
 3. Thực hiện POST /auth/login bằng tài khoản hợp lệ.
 4. Sao chép accessToken từ response.
 5. Chọn Authorize và nhập token vào ô Bearer.
