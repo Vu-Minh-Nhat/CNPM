@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
+
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
@@ -16,6 +17,7 @@ from src.api.controllers.users_controller import create_users_blueprint
 from src.api.error_handlers import register_error_handlers
 from src.dependency_container import build_container
 from src.infrastructure.databases.database import Database
+from src.api.docs import register_api_docs
 
 
 def create_app() -> Flask:
@@ -117,5 +119,7 @@ def create_app() -> Flask:
             session_service=container.session_service,
         )
     )
+
+    register_api_docs(app)
 
     return app

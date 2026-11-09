@@ -1,6 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, func, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -9,6 +19,23 @@ from src.infrastructure.databases.base import Base
 
 class AccountModel(Base):
     __tablename__ = "users"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "email",
+            name="uq_users_email",
+        ),
+        CheckConstraint(
+            "email = lower(btrim(email)) "
+            "AND position('@' IN email) > 1",
+            name="ck_users_email_normalized",
+        ),
+        CheckConstraint(
+            r"password_hash ~ '^\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}$'",
+            name="ck_users_password_hash_bcrypt",
+        ),
+        Index("users_role_idx", "role_code"),
+    )
 
     id: Mapped[str] = mapped_column(
         UUID(as_uuid=False),
@@ -26,7 +53,10 @@ class AccountModel(Base):
     )
 
     role_code: Mapped[str] = mapped_column(
-        ForeignKey("roles.code"),
+        ForeignKey(
+            "roles.code",
+            ondelete="RESTRICT",
+        ),
         nullable=False,
     )
 
