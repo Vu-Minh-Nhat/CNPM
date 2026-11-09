@@ -1,4 +1,4 @@
-# Phạm vi hệ thống và sơ đồ ngữ cảnh AR-IMMS
+﻿# Phạm vi hệ thống và sơ đồ ngữ cảnh AR-IMMS
 
 ## 1. Mục đích
 
@@ -30,7 +30,7 @@ Trạng thái triển khai được theo dõi trong tài liệu sprint và kiể
 |---|---|
 | Web Management Portal | Truy cập bằng trình duyệt, phục vụ quản trị và vận hành |
 | Mobile AR | Ứng dụng Android phục vụ Technician tại hiện trường |
-| Backend | NestJS, cung cấp API và xử lý nghiệp vụ |
+| Backend | Flask, cung cấp API và xử lý nghiệp vụ |
 | Web Frontend | Next.js |
 | Mobile Application | React Native, tích hợp khả năng AR theo thiết kế |
 | Truyền dữ liệu thời gian thực | Socket.IO |
