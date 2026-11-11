@@ -18,14 +18,15 @@ Không mặc định mọi thực thể trong sơ đồ đã được triển kh
 ## 3. Quy ước
 
 | Ký hiệu | Ý nghĩa |
-|---|---|
-| Hình chữ nhật | Thực thể |
-| Hình thoi | Quan hệ giữa các thực thể |
-| 1 | Một đối tượng |
-| N | Nhiều đối tượng |
+| --- | --- |
+| Hình chữ nhật | Thực thể dữ liệu |
+| PK | Khóa chính, định danh duy nhất một bản ghi |
+| FK | Khóa ngoại, tham chiếu đến bản ghi của thực thể khác |
+| Đường nối, mũi tên | Liên kết tham chiếu giữa các thực thể |
 
-Khả năng không có bản ghi liên quan và các ràng buộc bắt buộc
-phải được làm rõ trong thiết kế chi tiết.
+Sơ đồ hiện chưa thể hiện đầy đủ ký hiệu bội số và tính tùy chọn.
+Quan hệ một–nhiều và các ràng buộc được diễn giải trong tài liệu
+và cụ thể hóa bằng migration.
 
 ## 4. Các thực thể
 
