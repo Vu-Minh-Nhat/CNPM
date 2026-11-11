@@ -20,9 +20,6 @@ from src.infrastructure.repositories.room_repository import (
 from src.infrastructure.repositories.server_repository import (
     SqlAlchemyServerRepository,
 )
-from src.infrastructure.repositories.telemetry_repository import (
-    SqlAlchemyTelemetryRepository,
-)
 from src.infrastructure.repositories.site_repository import (
     SqlAlchemySiteRepository,
 )
@@ -37,7 +34,6 @@ from src.services.login_service import LoginService
 from src.services.racks_service import RacksService
 from src.services.rooms_service import RoomsService
 from src.services.servers_service import ServersService
-from src.services.telemetry_service import TelemetryService
 from src.services.session_service import SessionService
 from src.services.sites_service import SitesService
 from src.services.users_service import UsersService
@@ -56,7 +52,6 @@ class Container:
     rooms_service: RoomsService
     racks_service: RacksService
     servers_service: ServersService
-    telemetry_service: TelemetryService
 
 
 def build_container(
@@ -85,9 +80,6 @@ def build_container(
     )
 
     servers = SqlAlchemyServerRepository(
-        session_factory=database.create_session,
-    )
-    telemetry = SqlAlchemyTelemetryRepository(
         session_factory=database.create_session,
     )
 
@@ -134,8 +126,5 @@ def build_container(
         servers_service=ServersService(
             servers=servers,
             racks=racks,
-        ),
-        telemetry_service=TelemetryService(
-            telemetry_repository=telemetry,
         ),
     )

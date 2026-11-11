@@ -150,7 +150,7 @@ hoặc vai trò của tài khoản đã tồn tại.
 ## 8. Chạy Backend
 
 ```powershell
-& ".\.venv\Scripts\python.exe" -m src.app
+.\run.bat
 ```
 
 Địa chỉ mặc định:

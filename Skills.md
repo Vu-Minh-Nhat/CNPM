@@ -6,7 +6,7 @@ kiểm thử và bàn giao công việc trong dự án.
 ## 1. Tổ chức repository
 
 - `docs/`: SRS, sơ đồ, báo cáo và tài liệu dự án.
-- `backend/`: API NestJS, database và migration.
+- `backend-python/`: API Flask, database và migration.
 - `frontend/`: Web Portal Next.js.
 - `mobile/`: ứng dụng Mobile AR.
 - `agent/`: Collector Agent.
@@ -85,28 +85,17 @@ và kiểm tra được.
 
 ## 6. Kiểm thử
 
-Backend:
+Chạy tại thư mục `backend-python`:
 
 ```powershell
-cd backend
-npm run build
-npm test
-npm run test:e2e
+& ".\.venv\Scripts\python.exe" -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-E2e hiện yêu cầu database đã migrate và seed,
-cùng cấu hình DATABASE_URL và SEED_PASSWORD phù hợp.
+Kiểm thử yêu cầu database `arimms_python_check` đã migration và seed,
+cùng cấu hình `.env.migration`. Nhập mật khẩu tài khoản seed
+khi chương trình yêu cầu.
 
-Frontend phải có hướng dẫn kiểm tra trong README riêng
-sau khi được khởi tạo.
-
-Kiểm tra:
-- Luồng thành công.
-- Dữ liệu không hợp lệ.
-- Thiếu đăng nhập và sai quyền.
-- Dữ liệu rỗng.
-- Lỗi kết nối Backend hoặc database.
-- Ảnh hưởng đến chức năng đã có.
+Xem hướng dẫn chuẩn bị tại [Backend README](backend-python/README.md).
 
 ## 7. Pull Request
 

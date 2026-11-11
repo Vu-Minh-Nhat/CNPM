@@ -1,4 +1,4 @@
-# Cài đặt, cấu hình và vận hành
+﻿# Cài đặt, cấu hình và vận hành
 
 ## 1. Mục đích
 
@@ -13,7 +13,7 @@ và việc tích hợp các thành phần trong những sprint tiếp theo.
 | Thành phần | Tài liệu |
 |---|---|
 | Tổng quan repository | [README dự án](../../README.md) |
-| Backend, database, migration và seed | [Backend README](../../backend/README.md) |
+| Backend, database, migration và seed | [Backend README](../../backend-python/README.md) |
 | Frontend, cấu hình API và chạy Web Portal | [Frontend README](../../frontend/README.md) |
 
 Các lệnh cài đặt và chạy được duy trì trong README
@@ -23,7 +23,7 @@ của từng thành phần.
 
 | Thành phần | Cấu hình mặc định |
 |---|---|
-| Backend | http://localhost:3000 |
+| Backend | http://localhost:5000 |
 | Frontend | http://localhost:3001 |
 | PostgreSQL | localhost:5432 hoặc cổng đã cấu hình |
 
@@ -36,7 +36,7 @@ không phải địa chỉ dùng chung giữa các máy.
 
 | Thành phần | File mẫu | File cấu hình trên máy | Biến chính |
 |---|---|---|---|
-| Backend | backend/.env.example | backend/.env | DATABASE_URL, JWT_SECRET, PORT, CORS_ORIGINS |
+| Backend | backend-python/.env.example | backend-python/.env | DATABASE_URL, JWT_SECRET, JWT_EXPIRES_IN_SECONDS, CORS_ORIGINS |
 | Frontend | frontend/.env.example | frontend/.env.local | NEXT_PUBLIC_API_URL |
 
 ### Nguyên tắc

@@ -1,4 +1,4 @@
-# Tài liệu dự án AR-IMMS
+﻿# Tài liệu dự án AR-IMMS
 
 Tài liệu phân tích, thiết kế, kiểm thử và hướng dẫn phát triển
 hệ thống AR-IMMS.
@@ -20,7 +20,7 @@ hệ thống AR-IMMS.
 
 ## Tài liệu chạy dự án
 
-- [Hướng dẫn Backend](../backend/README.md)
+- [Hướng dẫn Backend](../backend-python/README.md)
 - [Hướng dẫn Frontend](../frontend/README.md)
 
 ## Quy ước

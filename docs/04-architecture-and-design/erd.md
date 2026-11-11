@@ -13,19 +13,35 @@ Không mặc định mọi thực thể trong sơ đồ đã được triển kh
 
 ## 2. Sơ đồ ERD
 
-![Sơ đồ ERD hệ thống AR-IMMS](../images/sodoerd.png)
+### 2.1. ERD tổng quan ban đầu
+
+![ERD tổng quan ban đầu](../images/sodoerd.png)
+
+Sơ đồ ban đầu mô tả các thực thể và quan hệ nghiệp vụ chính
+của hệ thống AR-IMMS.
+
+### 2.2. ERD bổ sung thuộc tính, khóa chính và khóa ngoại
+
+![ERD bổ sung thuộc tính](../images/ERD%20AR_IMMS.drawio.png)
+
+Sơ đồ trình bày các thuộc tính, khóa chính và khóa ngoại,
+giúp làm rõ cấu trúc dữ liệu và liên kết giữa các thực thể.
+
+Cả hai hình là tài liệu thiết kế tổng quan.
+Database thực tế được quản lý bằng model SQLAlchemy và migration.
 
 ## 3. Quy ước
 
 | Ký hiệu | Ý nghĩa |
-|---|---|
-| Hình chữ nhật | Thực thể |
-| Hình thoi | Quan hệ giữa các thực thể |
-| 1 | Một đối tượng |
-| N | Nhiều đối tượng |
+| --- | --- |
+| Hình chữ nhật | Thực thể dữ liệu |
+| PK | Khóa chính, định danh duy nhất một bản ghi |
+| FK | Khóa ngoại, tham chiếu đến bản ghi của thực thể khác |
+| Đường nối, mũi tên | Liên kết tham chiếu giữa các thực thể |
 
-Khả năng không có bản ghi liên quan và các ràng buộc bắt buộc
-phải được làm rõ trong thiết kế chi tiết.
+Sơ đồ hiện chưa thể hiện đầy đủ ký hiệu bội số và tính tùy chọn.
+Quan hệ một–nhiều và các ràng buộc được diễn giải trong tài liệu
+và cụ thể hóa bằng migration.
 
 ## 4. Các thực thể
 

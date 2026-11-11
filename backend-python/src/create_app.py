@@ -13,7 +13,6 @@ from src.api.controllers.racks_controller import create_racks_blueprint
 from src.api.controllers.rooms_controller import create_rooms_blueprint
 from src.api.controllers.servers_controller import create_servers_blueprint
 from src.api.controllers.sites_controller import create_sites_blueprint
-from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.users_controller import create_users_blueprint
 from src.api.error_handlers import register_error_handlers
 from src.dependency_container import build_container
@@ -120,12 +119,6 @@ def create_app() -> Flask:
             session_service=container.session_service,
         )
     )
-    app.register_blueprint(
-    create_telemetry_blueprint(
-        telemetry_service=container.telemetry_service,
-        session_service=container.session_service,
-    )
-)
 
     register_api_docs(app)
 
