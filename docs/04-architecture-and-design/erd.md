@@ -13,8 +13,24 @@ Không mặc định mọi thực thể trong sơ đồ đã được triển kh
 
 ## 2. Sơ đồ ERD
 
-![Sơ đồ ERD hệ thống AR-IMMS](../images/sodoerd.png)
+### 2.1. ERD tổng quan ban đầu
 
+![ERD tổng quan ban đầu](../images/sodoerd.png)
+
+Sơ đồ ban đầu mô tả các thực thể và quan hệ nghiệp vụ chính
+của hệ thống AR-IMMS.
+
+### 2.2. ERD bổ sung thuộc tính, khóa chính và khóa ngoại
+
+![ERD bổ sung thuộc tính](../images/ERD%20AR_IMMS.drawio.png)
+
+Sơ đồ trình bày các thuộc tính, khóa chính và khóa ngoại,
+giúp làm rõ cấu trúc dữ liệu và liên kết giữa các thực thể.
+
+Cả hai hình là tài liệu thiết kế tổng quan.
+Database thực tế được quản lý bằng model SQLAlchemy và migration.
+Các khác biệt với phần đã triển khai, đặc biệt Telemetry trong AI-43,
+được giải thích tại mục 7.
 ## 3. Quy ước
 
 | Ký hiệu | Ý nghĩa |
