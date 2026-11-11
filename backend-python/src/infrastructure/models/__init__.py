@@ -7,7 +7,7 @@ from src.infrastructure.models.asset_models import (
     SiteModel,
     WorkloadModel,
 )
-
+from src.infrastructure.models.telemetry_model import TelemetryModel
 __all__ = [
     "AccountModel",
     "RoleModel",
@@ -16,4 +16,5 @@ __all__ = [
     "RackModel",
     "NodeModel",
     "WorkloadModel",
+    "TelemetryModel",
 ]
