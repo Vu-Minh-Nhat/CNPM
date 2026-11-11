@@ -29,8 +29,7 @@ giúp làm rõ cấu trúc dữ liệu và liên kết giữa các thực thể.
 
 Cả hai hình là tài liệu thiết kế tổng quan.
 Database thực tế được quản lý bằng model SQLAlchemy và migration.
-Các khác biệt với phần đã triển khai, đặc biệt Telemetry trong AI-43,
-được giải thích tại mục 7.
+
 ## 3. Quy ước
 
 | Ký hiệu | Ý nghĩa |
