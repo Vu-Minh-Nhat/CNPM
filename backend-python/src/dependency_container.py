@@ -1,7 +1,9 @@
+
 from dataclasses import dataclass
 
 from src.domain.repositories.account_repository import AccountRepository
 from src.domain.repositories.asset_repository import AssetRepository
+from src.domain.repositories.telemetry_repository import TelemetryRepository
 from src.domain.security.token_provider import TokenProvider
 
 from src.infrastructure.databases.database import Database
@@ -23,6 +25,9 @@ from src.infrastructure.repositories.server_repository import (
 from src.infrastructure.repositories.site_repository import (
     SqlAlchemySiteRepository,
 )
+from src.infrastructure.repositories.telemetry_repository import (
+    SqlAlchemyTelemetryRepository,
+)
 from src.infrastructure.security.bcrypt_password_verifier import (
     BcryptPasswordVerifier,
 )
@@ -36,6 +41,7 @@ from src.services.rooms_service import RoomsService
 from src.services.servers_service import ServersService
 from src.services.session_service import SessionService
 from src.services.sites_service import SitesService
+from src.services.telemetry_service import TelemetryService
 from src.services.users_service import UsersService
 
 
@@ -43,6 +49,7 @@ from src.services.users_service import UsersService
 class Container:
     accounts: AccountRepository
     assets: AssetRepository
+    telemetry_repository: TelemetryRepository
     tokens: TokenProvider
     login_service: LoginService
     session_service: SessionService
@@ -52,6 +59,7 @@ class Container:
     rooms_service: RoomsService
     racks_service: RacksService
     servers_service: ServersService
+    telemetry_service: TelemetryService
 
 
 def build_container(
@@ -60,27 +68,25 @@ def build_container(
     jwt_expires_in_seconds: int,
 ) -> Container:
     accounts = SqlAlchemyAccountRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
     )
-
     assets = SqlAlchemyAssetRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
     )
-
     sites = SqlAlchemySiteRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
     )
-
     rooms = SqlAlchemyRoomRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
     )
-
     racks = SqlAlchemyRackRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
     )
-
     servers = SqlAlchemyServerRepository(
-        session_factory=database.create_session,
+        session_factory=database.create_session
+    )
+    telemetry_repository = SqlAlchemyTelemetryRepository(
+        session_factory=database.create_session
     )
 
     tokens = JwtTokenProvider(
@@ -96,6 +102,7 @@ def build_container(
     return Container(
         accounts=accounts,
         assets=assets,
+        telemetry_repository=telemetry_repository,
         tokens=tokens,
         login_service=LoginService(
             auth_service=auth_service,
@@ -109,22 +116,12 @@ def build_container(
             accounts=accounts,
             password_hasher=BcryptPasswordVerifier(),
         ),
-        assets_service=AssetsService(
-            assets=assets,
-        ),
-        sites_service=SitesService(
-            sites=sites,
-        ),
-        rooms_service=RoomsService(
-            rooms=rooms,
-            sites=sites,
-        ),
-        racks_service=RacksService(
-            racks=racks,
-            rooms=rooms,
-        ),
-        servers_service=ServersService(
-            servers=servers,
-            racks=racks,
+        assets_service=AssetsService(assets=assets),
+        sites_service=SitesService(sites=sites),
+        rooms_service=RoomsService(rooms=rooms, sites=sites),
+        racks_service=RacksService(racks=racks, rooms=rooms),
+        servers_service=ServersService(servers=servers, racks=racks),
+        telemetry_service=TelemetryService(
+            telemetry_repository=telemetry_repository,
         ),
     )
