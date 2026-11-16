@@ -6,6 +6,7 @@ from flask import Flask
 from flask_cors import CORS
 
 
+from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
@@ -116,6 +117,13 @@ def create_app() -> Flask:
     app.register_blueprint(
         create_servers_blueprint(
             servers_service=container.servers_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_telemetry_blueprint(
+            telemetry_service=container.telemetry_service,
             session_service=container.session_service,
         )
     )

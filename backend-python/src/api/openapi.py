@@ -55,6 +55,68 @@ def build_openapi():
         "message": {"type": "string"},
     })
 
+    schemas["TelemetryInput"] = input_schema({
+        "message_id": uuid,
+        "node_id": uuid,
+        "measured_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Thời điểm Agent đo dữ liệu, phải có múi giờ.",
+        },
+        "cpu_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+        "memory_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+        "disk_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+    }, [
+        "message_id",
+        "node_id",
+        "measured_at",
+        "cpu_percent",
+        "memory_percent",
+        "disk_percent",
+    ])
+
+    schemas["TelemetryRecord"] = object_schema({
+        "id": uuid,
+        "message_id": uuid,
+        "node_id": uuid,
+        "measured_at": {
+            "type": "string",
+            "format": "date-time",
+        },
+        "cpu_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+        "memory_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+        "disk_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+        },
+        "received_at": {
+            "type": "string",
+            "format": "date-time",
+        },
+    })
+
+
     schemas["Health"] = object_schema({
         "status": {"type": "string", "example": "ok"},
         "service": {"type": "string", "example": "ar-imms-backend"},
@@ -296,6 +358,40 @@ def build_openapi():
         },
     }
 
+    paths["/telemetry"] = {
+        "post": {
+            "tags": ["Telemetry"],
+            "summary": "Agent gửi dữ liệu Telemetry cho Node",
+            "description": (
+                "Xác thực Agent bằng X-Agent-Key. "
+                "Agent chỉ được gửi dữ liệu cho Node được cấp quyền. "
+                "Gửi lại cùng message_id và payload sẽ không tạo bản ghi trùng. "
+                "Nếu message_id trùng nhưng payload khác, trả về 409."
+            ),
+            "security": [{"agentKey": []}],
+            "requestBody": {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": ref("TelemetryInput")
+                    }
+                },
+            },
+            "responses": {
+                "200": response(
+                    "Đã tiếp nhận hoặc bản tin đã tồn tại.",
+                    ref("TelemetryRecord"),
+                ),
+                "400": response("Dữ liệu không hợp lệ.", ref("Error")),
+                "401": response("Agent chưa xác thực.", ref("Error")),
+                "403": response("Agent không có quyền gửi cho Node.", ref("Error")),
+                "409": response("message_id đã tồn tại với payload khác.", ref("Error")),
+                "503": response("Database tạm thời không khả dụng.", ref("Error")),
+                "500": response("Lỗi hệ thống.", ref("Error")),
+            },
+        }
+    }
+
     for path, model, detail, properties, required in resources:
         create_name = f"Create_{path}"
         update_name = f"Update_{path}"
@@ -359,7 +455,12 @@ def build_openapi():
                     "type": "http",
                     "scheme": "bearer",
                     "bearerFormat": "JWT",
-                }
+                },
+                "agentKey": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "X-Agent-Key",
+                },
             },
             "schemas": schemas,
         },
