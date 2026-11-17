@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
@@ -19,7 +19,7 @@ from src.domain.models.telemetry import (
 from src.domain.repositories.telemetry_repository import (
     TelemetryRepository,
 )
-from src.infrastructure.models import TelemetryModel
+from src.infrastructure.models import NodeModel, TelemetryModel
 
 
 class SqlAlchemyTelemetryRepository(TelemetryRepository):
@@ -167,6 +167,21 @@ class SqlAlchemyTelemetryRepository(TelemetryRepository):
                                 "nhưng nội dung telemetry khác nhau."
                             )
 
+                    # Chỉ cập nhật sau khi mẫu đã được xác nhận hợp lệ.
+                    # Retry cùng nội dung cũng chứng minh Agent còn liên lạc.
+                    # Không sửa received_at của bản ghi telemetry cũ.
+                    session.execute(
+                        update(NodeModel)
+                        .where(NodeModel.id == values["node_id"])
+                        .values(
+                            last_telemetry_received_at=func.greatest(
+                                NodeModel.last_telemetry_received_at,
+                                func.clock_timestamp(),
+                            )
+                        )
+                        .execution_options(synchronize_session=False)
+                    )
+
                     result = self._to_domain(model)
 
                 return result
@@ -240,3 +255,19 @@ class SqlAlchemyTelemetryRepository(TelemetryRepository):
                 self._to_domain(model)
                 for model in models
             ]
+    def get_last_received_at(self, node_id: str) -> datetime | None:
+        normalized_id = self._normalize_id(node_id, "node_id")
+
+        statement = select(
+            NodeModel.last_telemetry_received_at
+        ).where(
+            NodeModel.id == normalized_id
+        )
+
+        with self._session_factory() as session:
+            received_at = session.scalar(statement)
+
+            if received_at is None:
+                return None
+
+            return received_at.astimezone(timezone.utc)

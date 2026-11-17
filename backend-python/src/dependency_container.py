@@ -1,6 +1,6 @@
 
 from dataclasses import dataclass
-
+from src.services.telemetry_query_service import TelemetryQueryService
 from src.domain.repositories.account_repository import AccountRepository
 from src.domain.repositories.asset_repository import AssetRepository
 from src.domain.repositories.telemetry_repository import TelemetryRepository
@@ -60,12 +60,15 @@ class Container:
     racks_service: RacksService
     servers_service: ServersService
     telemetry_service: TelemetryService
-
+    telemetry_query_service: TelemetryQueryService
 
 def build_container(
     database: Database,
     jwt_secret: str,
     jwt_expires_in_seconds: int,
+    stale_after_seconds: int = 30,
+    offline_after_seconds: int = 90,
+    poll_interval_seconds: int = 5,
 ) -> Container:
     accounts = SqlAlchemyAccountRepository(
         session_factory=database.create_session
@@ -123,5 +126,12 @@ def build_container(
         servers_service=ServersService(servers=servers, racks=racks),
         telemetry_service=TelemetryService(
             telemetry_repository=telemetry_repository,
+        ),
+        telemetry_query_service=TelemetryQueryService(
+            telemetry_repository=telemetry_repository,
+            server_repository=servers,
+            stale_after_seconds=stale_after_seconds,
+            offline_after_seconds=offline_after_seconds,
+            poll_interval_seconds=poll_interval_seconds,
         ),
     )

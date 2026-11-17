@@ -1,5 +1,5 @@
 "use client";
-
+import NodeTelemetryPanel from "@/components/telemetry/node-telemetry-panel";
 import type { AssetNode } from "@/types/asset";
 
 type AssetDetailProps = {
@@ -173,6 +173,7 @@ export default function AssetDetail({
           </table>
         </div>
       )}
+      <NodeTelemetryPanel nodeId={asset.id} />
     </section>
   );
 }

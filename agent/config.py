@@ -21,7 +21,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 JWT_SECRET = os.getenv("JWT_SECRET", "").strip()
 
-AUTH_TOKEN = os.getenv("AUTH_TOKEN", "").strip()
+AGENT_KEY = os.getenv("AGENT_KEY", "").strip()
 
 SEND_INTERVAL_SECONDS = float(
     os.getenv("SEND_INTERVAL_SECONDS", "5")

@@ -403,7 +403,103 @@ class TestTelemetryRepository(unittest.TestCase):
 
         self.assertEqual(results[0].id, results[1].id)
         self.assertEqual(self._count(), 1)
+    def _set_last_received_for_test(self, timestamp):
+        # Chỉ thay đổi Node riêng được tạo bởi test hiện tại.
+        with self.database.create_session() as session:
+            with session.begin():
+                node = session.get(NodeModel, self.node_id)
+                self.assertIsNotNone(node)
+                node.last_telemetry_received_at = timestamp
 
+    def test_15_node_without_telemetry_has_no_reception_time(self):
+        self.assertIsNone(
+            self.repository.get_last_received_at(self.node_id)
+        )
+
+    def test_16_old_measurement_updates_reception_time(self):
+        newer = self.repository.save(
+            self._sample(
+                measured_at=self.base_time + timedelta(minutes=2)
+            )
+        )
+
+        old_reception = newer.received_at - timedelta(minutes=5)
+        self._set_last_received_for_test(old_reception)
+
+        # Mẫu đo cũ được tiếp nhận sau.
+        older = self.repository.save(
+            self._sample(measured_at=self.base_time)
+        )
+
+        last_received = self.repository.get_last_received_at(
+            self.node_id
+        )
+        latest_measurement = self.repository.get_latest(
+            self.node_id
+        )
+
+        self.assertIsNotNone(last_received)
+        self.assertGreater(last_received, old_reception)
+        self.assertGreaterEqual(last_received, older.received_at)
+
+        # Mẫu đo mới nhất vẫn là mẫu có measured_at lớn hơn.
+        self.assertEqual(latest_measurement.id, newer.id)
+
+    def test_17_valid_retry_updates_contact_without_changing_record(self):
+        sample = self._sample()
+        first = self.repository.save(sample)
+
+        old_reception = first.received_at - timedelta(minutes=5)
+        self._set_last_received_for_test(old_reception)
+
+        retried = self.repository.save(sample)
+
+        last_received = self.repository.get_last_received_at(
+            self.node_id
+        )
+
+        self.assertEqual(retried, first)
+        self.assertEqual(self._count(), 1)
+        self.assertIsNotNone(last_received)
+        self.assertGreater(last_received, old_reception)
+        self.assertGreaterEqual(last_received, first.received_at)
+
+    def test_18_rejected_samples_do_not_update_contact(self):
+        sample = self._sample()
+        original = self.repository.save(sample)
+
+        old_reception = original.received_at - timedelta(minutes=5)
+        self._set_last_received_for_test(old_reception)
+
+        cases = (
+            (
+                replace(sample, cpu_percent=99.0),
+                ResourceConflictError,
+            ),
+            (
+                replace(sample, cpu_percent=-1),
+                ValidationError,
+            ),
+            (
+                replace(sample, message_id="invalid-uuid"),
+                ValidationError,
+            ),
+        )
+
+        for invalid_sample, expected_error in cases:
+            with self.subTest(expected_error=expected_error.__name__):
+                with self.assertRaises(expected_error):
+                    self.repository.save(invalid_sample)
+
+                self.assertEqual(
+                    self.repository.get_last_received_at(self.node_id),
+                    old_reception,
+                )
+                self.assertEqual(
+                    self.repository.get_latest(self.node_id),
+                    original,
+                )
+                self.assertEqual(self._count(), 1)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

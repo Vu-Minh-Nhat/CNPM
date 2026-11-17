@@ -19,6 +19,9 @@ from src.api.error_handlers import register_error_handlers
 from src.dependency_container import build_container
 from src.infrastructure.databases.database import Database
 from src.api.docs import register_api_docs
+from src.api.controllers.telemetry_queries_controller import (
+    create_telemetry_queries_blueprint,
+)
 
 
 def create_app() -> Flask:
@@ -45,11 +48,19 @@ def create_app() -> Flask:
         ) from error
 
     database = Database(database_url)
-
     container = build_container(
         database=database,
         jwt_secret=jwt_secret,
         jwt_expires_in_seconds=jwt_expires_in_seconds,
+        stale_after_seconds=int(
+            os.getenv("TELEMETRY_STALE_AFTER_SECONDS", "30")
+        ),
+        offline_after_seconds=int(
+            os.getenv("TELEMETRY_OFFLINE_AFTER_SECONDS", "90")
+        ),
+        poll_interval_seconds=int(
+            os.getenv("TELEMETRY_POLL_INTERVAL_SECONDS", "5")
+        ),
     )
 
     app.extensions["database"] = database
@@ -127,7 +138,12 @@ def create_app() -> Flask:
             session_service=container.session_service,
         )
     )
-
+    app.register_blueprint(
+        create_telemetry_queries_blueprint(
+            query_service=container.telemetry_query_service,
+            session_service=container.session_service,
+        )
+    )
     register_api_docs(app)
 
     return app
