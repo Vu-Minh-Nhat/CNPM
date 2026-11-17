@@ -1,4 +1,5 @@
 from sqlalchemy import (
+    DateTime,
     CheckConstraint,
     ForeignKey,
     Index,
@@ -11,6 +12,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.infrastructure.databases.base import Base
+from datetime import datetime
 
 
 class SiteModel(Base):
@@ -131,16 +133,33 @@ class NodeModel(Base):
     )
 
     id: Mapped[str] = mapped_column(
-        UUID(as_uuid=False), primary_key=True
+        UUID(as_uuid=False),
+        primary_key=True,
     )
+
     rack_id: Mapped[str] = mapped_column(
         ForeignKey("racks.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    code: Mapped[str] = mapped_column(String(64), nullable=False)
-    name: Mapped[str] = mapped_column(String(200), nullable=False)
+
+    code: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+    )
+
     serial_number: Mapped[str | None] = mapped_column(
-        String(128), nullable=True
+        String(128),
+        nullable=True,
+    )
+
+    last_telemetry_received_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     rack: Mapped[RackModel] = relationship("RackModel")

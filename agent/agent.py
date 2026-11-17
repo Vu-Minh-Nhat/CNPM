@@ -8,7 +8,7 @@ import psutil
 import requests
 
 from config import (
-    AUTH_TOKEN,
+    AGENT_KEY,
     BACKEND_URL,
     MAX_RETRIES,
     NODE_ID,
@@ -52,7 +52,7 @@ def send_telemetry(payload: dict) -> bool:
     url = f"{BACKEND_URL}{TELEMETRY_ENDPOINT}"
 
     headers = {
-        "Authorization": f"Bearer {AUTH_TOKEN}",
+        "X-Agent-Key": AGENT_KEY,
         "Content-Type": "application/json",
     }
 
@@ -124,8 +124,8 @@ def validate_config() -> None:
     if not NODE_ID:
         raise RuntimeError("NODE_ID chưa được cấu hình.")
 
-    if not AUTH_TOKEN:
-        raise RuntimeError("AUTH_TOKEN chưa được cấu hình.")
+    if not AGENT_KEY:
+        raise RuntimeError("AGENT_KEY chưa được cấu hình.")
 
 
 def main() -> None:

@@ -48,3 +48,7 @@ class TelemetryRepository(ABC):
         Limit hợp lệ từ 1 đến 1000.
         """
         raise NotImplementedError
+    @abstractmethod
+    def get_last_received_at(self, node_id: str) -> datetime | None:
+        """Lấy thời điểm tiếp nhận telemetry hợp lệ gần nhất của Node."""
+        raise NotImplementedError
