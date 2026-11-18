@@ -1,14 +1,23 @@
-
 from dataclasses import dataclass
+
 from src.services.telemetry_query_service import TelemetryQueryService
+
 from src.domain.repositories.account_repository import AccountRepository
+from src.domain.repositories.alert_repository import AlertRepository
 from src.domain.repositories.asset_repository import AssetRepository
 from src.domain.repositories.telemetry_repository import TelemetryRepository
+from src.domain.repositories.ticket_history_repository import (
+    TicketHistoryRepository,
+)
+from src.domain.repositories.ticket_repository import TicketRepository
 from src.domain.security.token_provider import TokenProvider
 
 from src.infrastructure.databases.database import Database
 from src.infrastructure.repositories.account_repository import (
     SqlAlchemyAccountRepository,
+)
+from src.infrastructure.repositories.alert_repository import (
+    SqlAlchemyAlertRepository,
 )
 from src.infrastructure.repositories.asset_repository import (
     SqlAlchemyAssetRepository,
@@ -27,6 +36,12 @@ from src.infrastructure.repositories.site_repository import (
 )
 from src.infrastructure.repositories.telemetry_repository import (
     SqlAlchemyTelemetryRepository,
+)
+from src.infrastructure.repositories.ticket_history_repository import (
+    SqlAlchemyTicketHistoryRepository,
+)
+from src.infrastructure.repositories.ticket_repository import (
+    SqlAlchemyTicketRepository,
 )
 from src.infrastructure.security.bcrypt_password_verifier import (
     BcryptPasswordVerifier,
@@ -50,6 +65,9 @@ class Container:
     accounts: AccountRepository
     assets: AssetRepository
     telemetry_repository: TelemetryRepository
+    alert_repository: AlertRepository
+    ticket_repository: TicketRepository
+    ticket_history_repository: TicketHistoryRepository
     tokens: TokenProvider
     login_service: LoginService
     session_service: SessionService
@@ -61,6 +79,7 @@ class Container:
     servers_service: ServersService
     telemetry_service: TelemetryService
     telemetry_query_service: TelemetryQueryService
+
 
 def build_container(
     database: Database,
@@ -91,6 +110,15 @@ def build_container(
     telemetry_repository = SqlAlchemyTelemetryRepository(
         session_factory=database.create_session
     )
+    alert_repository = SqlAlchemyAlertRepository(
+        session_factory=database.create_session
+    )
+    ticket_repository = SqlAlchemyTicketRepository(
+        session_factory=database.create_session
+    )
+    ticket_history_repository = SqlAlchemyTicketHistoryRepository(
+        session_factory=database.create_session
+    )
 
     tokens = JwtTokenProvider(
         secret=jwt_secret,
@@ -106,6 +134,9 @@ def build_container(
         accounts=accounts,
         assets=assets,
         telemetry_repository=telemetry_repository,
+        alert_repository=alert_repository,
+        ticket_repository=ticket_repository,
+        ticket_history_repository=ticket_history_repository,
         tokens=tokens,
         login_service=LoginService(
             auth_service=auth_service,

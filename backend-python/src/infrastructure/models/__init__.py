@@ -8,6 +8,10 @@ from src.infrastructure.models.asset_models import (
     WorkloadModel,
 )
 from src.infrastructure.models.telemetry_model import TelemetryModel
+from src.infrastructure.models.alert_models import AlertModel, AlertRuleModel
+from src.infrastructure.models.ticket_models import TicketModel, TicketHistoryModel
+
+
 __all__ = [
     "AccountModel",
     "RoleModel",
@@ -17,4 +21,8 @@ __all__ = [
     "NodeModel",
     "WorkloadModel",
     "TelemetryModel",
+    "AlertModel",
+    "AlertRuleModel",
+    "TicketModel",
+    "TicketHistoryModel",
 ]
