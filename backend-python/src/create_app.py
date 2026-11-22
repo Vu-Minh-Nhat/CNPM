@@ -5,23 +5,23 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
-
-from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
+from src.api.controllers.markers_controller import create_markers_blueprint
 from src.api.controllers.racks_controller import create_racks_blueprint
 from src.api.controllers.rooms_controller import create_rooms_blueprint
 from src.api.controllers.servers_controller import create_servers_blueprint
 from src.api.controllers.sites_controller import create_sites_blueprint
-from src.api.controllers.users_controller import create_users_blueprint
-from src.api.error_handlers import register_error_handlers
-from src.dependency_container import build_container
-from src.infrastructure.databases.database import Database
-from src.api.docs import register_api_docs
+from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.telemetry_queries_controller import (
     create_telemetry_queries_blueprint,
 )
+from src.api.controllers.users_controller import create_users_blueprint
+from src.api.docs import register_api_docs
+from src.api.error_handlers import register_error_handlers
+from src.dependency_container import build_container
+from src.infrastructure.databases.database import Database
 
 
 def create_app() -> Flask:
@@ -48,6 +48,7 @@ def create_app() -> Flask:
         ) from error
 
     database = Database(database_url)
+
     container = build_container(
         database=database,
         jwt_secret=jwt_secret,
@@ -98,6 +99,13 @@ def create_app() -> Flask:
     )
 
     app.register_blueprint(
+        create_markers_blueprint(
+            marker_service=container.marker_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
         create_assets_blueprint(
             assets_service=container.assets_service,
             session_service=container.session_service,
@@ -138,12 +146,14 @@ def create_app() -> Flask:
             session_service=container.session_service,
         )
     )
+
     app.register_blueprint(
         create_telemetry_queries_blueprint(
             query_service=container.telemetry_query_service,
             session_service=container.session_service,
         )
     )
+
     register_api_docs(app)
 
     return app

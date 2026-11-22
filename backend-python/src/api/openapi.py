@@ -21,18 +21,21 @@ def build_openapi():
         return schema
 
     uuid = {"type": "string", "format": "uuid"}
+
     code = {
         "type": "string",
         "minLength": 1,
         "maxLength": 64,
         "pattern": r"\S",
     }
+
     name = {
         "type": "string",
         "minLength": 1,
         "maxLength": 200,
         "pattern": r"\S",
     }
+
     role = {
         "type": "string",
         "enum": ["Administrator", "Operator", "Technician"],
@@ -116,7 +119,6 @@ def build_openapi():
         },
     })
 
-
     schemas["Health"] = object_schema({
         "status": {"type": "string", "example": "ok"},
         "service": {"type": "string", "example": "ar-imms-backend"},
@@ -125,8 +127,14 @@ def build_openapi():
     })
 
     schemas["LoginInput"] = object_schema({
-        "email": {"type": "string", "example": "admin@arimms.local"},
-        "password": {"type": "string", "format": "password"},
+        "email": {
+            "type": "string",
+            "example": "admin@arimms.local",
+        },
+        "password": {
+            "type": "string",
+            "format": "password",
+        },
     })
 
     schemas["LoginResult"] = object_schema({
@@ -148,7 +156,11 @@ def build_openapi():
     })
 
     schemas["CreateAccount"] = input_schema({
-        "email": {"type": "string", "format": "email", "maxLength": 254},
+        "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+        },
         "password": {
             "type": "string",
             "format": "password",
@@ -163,38 +175,59 @@ def build_openapi():
         ["role"],
     )
 
-    site_fields = {"id": uuid, "code": code, "name": name}
-    room_fields = {
-        "id": uuid, "siteId": uuid, "code": code, "name": name,
+    site_fields = {
+        "id": uuid,
+        "code": code,
+        "name": name,
     }
+
+    room_fields = {
+        "id": uuid,
+        "siteId": uuid,
+        "code": code,
+        "name": name,
+    }
+
     rack_fields = {
         "id": uuid,
         "roomId": uuid,
         "code": code,
         "name": name,
-        "capacityU": {"type": "integer", "minimum": 1, "maximum": 100},
+        "capacityU": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+        },
     }
+
     node_fields = {
         "id": uuid,
         "rackId": uuid,
         "code": code,
         "name": name,
         "serialNumber": {
-            "type": "string", "maxLength": 128, "nullable": True,
+            "type": "string",
+            "maxLength": 128,
+            "nullable": True,
         },
     }
 
     schemas["Site"] = object_schema(site_fields)
+
     schemas["RoomSummary"] = object_schema(room_fields)
+
     schemas["Room"] = object_schema({
         **room_fields,
         "site": nullable("Site"),
     })
+
     schemas["RackSummary"] = object_schema(rack_fields)
+
     schemas["Rack"] = object_schema({
         **rack_fields,
         "room": nullable("RoomSummary"),
     })
+
     schemas["NodeSummary"] = object_schema(node_fields)
 
     schemas["Workload"] = object_schema({
@@ -203,7 +236,9 @@ def build_openapi():
         "code": code,
         "name": name,
         "runtimeId": {
-            "type": "string", "maxLength": 200, "nullable": True,
+            "type": "string",
+            "maxLength": 200,
+            "nullable": True,
         },
     })
 
@@ -211,6 +246,7 @@ def build_openapi():
         **rack_fields,
         "room": nullable("Room"),
     })
+
     schemas["Node"] = object_schema({
         **node_fields,
         "rack": nullable("AssetRack"),
@@ -221,47 +257,135 @@ def build_openapi():
         **schemas["Room"]["properties"],
         "racks": array("RackSummary"),
     })
+
     schemas["RackDetail"] = object_schema({
         **schemas["Rack"]["properties"],
         "nodes": array("NodeSummary"),
     })
 
+    # ------------------------------------------------------------------
+    # Marker schemas - Task 58
+    # ------------------------------------------------------------------
+
+    schemas["Marker"] = object_schema({
+        "id": uuid,
+        "marker_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": r"\S",
+        },
+        "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": r"\S",
+        },
+        "node_id": uuid,
+        "is_active": {
+            "type": "boolean",
+        },
+        "created_at": {
+            "type": "string",
+            "format": "date-time",
+        },
+        "updated_at": {
+            "type": "string",
+            "format": "date-time",
+        },
+    })
+
+    schemas["CreateMarker"] = input_schema({
+        "marker_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": r"\S",
+        },
+        "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": r"\S",
+        },
+        "node_id": uuid,
+    }, [
+        "marker_type",
+        "identifier",
+        "node_id",
+    ])
+
+    schemas["MarkerLookupResult"] = object_schema({
+        "marker": ref("Marker"),
+        "node": ref("Node"),
+    })
+
     resources = (
-        ("sites", "Site", "Site", {"code": code, "name": name},
-         ["code", "name"]),
-        ("rooms", "Room", "RoomDetail",
-         {"siteId": uuid, "code": code, "name": name},
-         ["siteId", "code", "name"]),
-        ("racks", "Rack", "RackDetail",
-         {
-             "roomId": uuid,
-             "code": code,
-             "name": name,
-             "capacityU": {
-                 "type": "integer", "minimum": 1, "maximum": 100,
-             },
-         },
-         ["roomId", "code", "name", "capacityU"]),
-        ("servers", "Node", "Node",
-         {
-             "rackId": uuid,
-             "code": code,
-             "name": name,
-             "serialNumber": {
-                 "type": "string",
-                 "nullable": True,
-                 "minLength": 1,
-                 "maxLength": 128,
-                 "pattern": r"\S",
-             },
-         },
-         ["rackId", "code", "name"]),
+        (
+            "sites",
+            "Site",
+            "Site",
+            {
+                "code": code,
+                "name": name,
+            },
+            ["code", "name"],
+        ),
+        (
+            "rooms",
+            "Room",
+            "RoomDetail",
+            {
+                "siteId": uuid,
+                "code": code,
+                "name": name,
+            },
+            ["siteId", "code", "name"],
+        ),
+        (
+            "racks",
+            "Rack",
+            "RackDetail",
+            {
+                "roomId": uuid,
+                "code": code,
+                "name": name,
+                "capacityU": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                },
+            },
+            ["roomId", "code", "name", "capacityU"],
+        ),
+        (
+            "servers",
+            "Node",
+            "Node",
+            {
+                "rackId": uuid,
+                "code": code,
+                "name": name,
+                "serialNumber": {
+                    "type": "string",
+                    "nullable": True,
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "pattern": r"\S",
+                },
+            },
+            ["rackId", "code", "name"],
+        ),
     )
 
     def response(description, schema):
         return {
             "description": description,
-            "content": {"application/json": {"schema": schema}},
+            "content": {
+                "application/json": {
+                    "schema": schema,
+                }
+            },
         }
 
     error_names = {
@@ -273,16 +397,25 @@ def build_openapi():
     }
 
     def operation(
-        tag, summary, output, status=200,
-        body=None, errors=(), public=False,
+        tag,
+        summary,
+        output,
+        status=200,
+        body=None,
+        errors=(),
+        public=False,
     ):
         responses = {
-            str(status): response("Thành công.", output),
+            str(status): response(
+                "Thành công.",
+                output,
+            ),
         }
 
         for error in errors:
             responses[str(error)] = response(
-                error_names[error], ref("Error")
+                error_names[error],
+                ref("Error"),
             )
 
         result = {
@@ -298,7 +431,9 @@ def build_openapi():
             result["requestBody"] = {
                 "required": True,
                 "content": {
-                    "application/json": {"schema": ref(body)}
+                    "application/json": {
+                        "schema": ref(body),
+                    }
                 },
             }
 
@@ -307,36 +442,50 @@ def build_openapi():
     paths = {
         "/health": {
             "get": operation(
-                "Health", "Kiểm tra hoạt động",
-                ref("Health"), public=True,
+                "Health",
+                "Kiểm tra hoạt động",
+                ref("Health"),
+                public=True,
             )
         },
+
         "/auth/login": {
             "post": operation(
-                "Auth", "Đăng nhập và nhận JWT",
+                "Auth",
+                "Đăng nhập và nhận JWT",
                 ref("LoginResult"),
                 body="LoginInput",
                 errors=(400, 401),
                 public=True,
             )
         },
+
         "/auth/me": {
             "get": operation(
-                "Auth", "Thông tin tài khoản hiện tại",
-                ref("CurrentUser"), errors=(401, 403),
+                "Auth",
+                "Thông tin tài khoản hiện tại",
+                ref("CurrentUser"),
+                errors=(401, 403),
             )
         },
+
         "/users": {
             "get": operation(
-                "Users", "Danh sách tài khoản — Administrator",
-                array("Account"), errors=(401, 403),
+                "Users",
+                "Danh sách tài khoản — Administrator",
+                array("Account"),
+                errors=(401, 403),
             ),
             "post": operation(
-                "Users", "Tạo tài khoản — Administrator",
-                ref("Account"), status=201,
-                body="CreateAccount", errors=(400, 401, 403, 409),
+                "Users",
+                "Tạo tài khoản — Administrator",
+                ref("Account"),
+                status=201,
+                body="CreateAccount",
+                errors=(400, 401, 403, 409),
             ),
         },
+
         "/users/{id}/role": {
             "parameters": [{
                 "name": "id",
@@ -345,17 +494,108 @@ def build_openapi():
                 "schema": uuid,
             }],
             "patch": operation(
-                "Users", "Đổi vai trò — Administrator",
-                ref("Account"), body="ChangeRole",
+                "Users",
+                "Đổi vai trò — Administrator",
+                ref("Account"),
+                body="ChangeRole",
                 errors=(400, 401, 403, 404),
             ),
         },
+
         "/assets": {
             "get": operation(
-                "Assets", "Cây tài sản — cả ba vai trò",
-                array("Node"), errors=(401, 403),
+                "Assets",
+                "Cây tài sản — cả ba vai trò",
+                array("Node"),
+                errors=(401, 403),
             )
         },
+    }
+
+    # ------------------------------------------------------------------
+    # Marker API - Task 58
+    # ------------------------------------------------------------------
+
+    paths["/markers"] = {
+        "get": operation(
+            "Markers",
+            "Danh sách Marker — Administrator",
+            array("Marker"),
+            errors=(401, 403),
+        ),
+
+        "post": operation(
+            "Markers",
+            "Đăng ký Marker — Administrator",
+            ref("Marker"),
+            status=201,
+            body="CreateMarker",
+            errors=(400, 401, 403, 409),
+        ),
+    }
+
+    paths["/markers/lookup"] = {
+        "get": {
+            "tags": ["Markers"],
+            "summary": "Tra cứu Node từ Marker — cả ba vai trò",
+            "parameters": [
+                {
+                    "name": "marker_type",
+                    "in": "query",
+                    "required": True,
+                    "schema": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 32,
+                        "pattern": r"\S",
+                    },
+                },
+                {
+                    "name": "identifier",
+                    "in": "query",
+                    "required": True,
+                    "schema": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128,
+                        "pattern": r"\S",
+                    },
+                },
+            ],
+            "responses": {
+                "200": response(
+                    "Marker và Node tương ứng.",
+                    ref("MarkerLookupResult"),
+                ),
+                "401": response(
+                    error_names[401],
+                    ref("Error"),
+                ),
+                "403": response(
+                    error_names[403],
+                    ref("Error"),
+                ),
+                "404": response(
+                    "Marker không tồn tại hoặc đã bị vô hiệu hóa.",
+                    ref("Error"),
+                ),
+            },
+        }
+    }
+
+    paths["/markers/{marker_id}/deactivate"] = {
+        "parameters": [{
+            "name": "marker_id",
+            "in": "path",
+            "required": True,
+            "schema": uuid,
+        }],
+        "patch": operation(
+            "Markers",
+            "Vô hiệu hóa Marker — Administrator",
+            ref("Marker"),
+            errors=(401, 403, 404),
+        ),
     }
 
     paths["/telemetry"] = {
@@ -373,7 +613,7 @@ def build_openapi():
                 "required": True,
                 "content": {
                     "application/json": {
-                        "schema": ref("TelemetryInput")
+                        "schema": ref("TelemetryInput"),
                     }
                 },
             },
@@ -382,12 +622,30 @@ def build_openapi():
                     "Đã tiếp nhận hoặc bản tin đã tồn tại.",
                     ref("TelemetryRecord"),
                 ),
-                "400": response("Dữ liệu không hợp lệ.", ref("Error")),
-                "401": response("Agent chưa xác thực.", ref("Error")),
-                "403": response("Agent không có quyền gửi cho Node.", ref("Error")),
-                "409": response("message_id đã tồn tại với payload khác.", ref("Error")),
-                "503": response("Database tạm thời không khả dụng.", ref("Error")),
-                "500": response("Lỗi hệ thống.", ref("Error")),
+                "400": response(
+                    "Dữ liệu không hợp lệ.",
+                    ref("Error"),
+                ),
+                "401": response(
+                    "Agent chưa xác thực.",
+                    ref("Error"),
+                ),
+                "403": response(
+                    "Agent không có quyền gửi cho Node.",
+                    ref("Error"),
+                ),
+                "409": response(
+                    "message_id đã tồn tại với payload khác.",
+                    ref("Error"),
+                ),
+                "503": response(
+                    "Database tạm thời không khả dụng.",
+                    ref("Error"),
+                ),
+                "500": response(
+                    "Lỗi hệ thống.",
+                    ref("Error"),
+                ),
             },
         }
     }
@@ -396,18 +654,31 @@ def build_openapi():
         create_name = f"Create_{path}"
         update_name = f"Update_{path}"
 
-        schemas[create_name] = input_schema(properties, required)
-        schemas[update_name] = input_schema(properties, [])
+        schemas[create_name] = input_schema(
+            properties,
+            required,
+        )
+
+        schemas[update_name] = input_schema(
+            properties,
+            [],
+        )
+
         schemas[update_name]["minProperties"] = 1
 
         paths[f"/{path}"] = {
             "get": operation(
-                path, "Danh sách — cả ba vai trò",
-                array(model), errors=(401, 403),
+                path,
+                "Danh sách — cả ba vai trò",
+                array(model),
+                errors=(401, 403),
             ),
             "post": operation(
-                path, "Tạo — Administrator, Operator",
-                ref(model), status=201, body=create_name,
+                path,
+                "Tạo — Administrator, Operator",
+                ref(model),
+                status=201,
+                body=create_name,
                 errors=(400, 401, 403, 409),
             ),
         }
@@ -420,17 +691,23 @@ def build_openapi():
                 "schema": uuid,
             }],
             "get": operation(
-                path, "Chi tiết — cả ba vai trò",
-                ref(detail), errors=(400, 401, 403, 404),
+                path,
+                "Chi tiết — cả ba vai trò",
+                ref(detail),
+                errors=(400, 401, 403, 404),
             ),
             "patch": operation(
-                path, "Cập nhật — Administrator, Operator",
-                ref(model), body=update_name,
+                path,
+                "Cập nhật — Administrator, Operator",
+                ref(model),
+                body=update_name,
                 errors=(400, 401, 403, 404, 409),
             ),
             "delete": operation(
-                path, "Xóa — Administrator",
-                ref("Message"), errors=(400, 401, 403, 404, 409),
+                path,
+                "Xóa — Administrator",
+                ref("Message"),
+                errors=(400, 401, 403, 404, 409),
             ),
         }
 
