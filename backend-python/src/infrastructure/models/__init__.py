@@ -10,6 +10,7 @@ from src.infrastructure.models.asset_models import (
 from src.infrastructure.models.telemetry_model import TelemetryModel
 from src.infrastructure.models.alert_models import AlertModel, AlertRuleModel
 from src.infrastructure.models.ticket_models import TicketModel, TicketHistoryModel
+from src.infrastructure.models.marker_model import MarkerModel
 
 
 __all__ = [
@@ -25,4 +26,5 @@ __all__ = [
     "AlertRuleModel",
     "TicketModel",
     "TicketHistoryModel",
+    "MarkerModel",
 ]

@@ -5,6 +5,7 @@ from src.services.telemetry_query_service import TelemetryQueryService
 from src.domain.repositories.account_repository import AccountRepository
 from src.domain.repositories.alert_repository import AlertRepository
 from src.domain.repositories.asset_repository import AssetRepository
+from src.domain.repositories.marker_repository import MarkerRepository
 from src.domain.repositories.telemetry_repository import TelemetryRepository
 from src.domain.repositories.ticket_history_repository import (
     TicketHistoryRepository,
@@ -21,6 +22,9 @@ from src.infrastructure.repositories.alert_repository import (
 )
 from src.infrastructure.repositories.asset_repository import (
     SqlAlchemyAssetRepository,
+)
+from src.infrastructure.repositories.marker_repository import (
+    SqlAlchemyMarkerRepository,
 )
 from src.infrastructure.repositories.rack_repository import (
     SqlAlchemyRackRepository,
@@ -51,6 +55,7 @@ from src.infrastructure.security.jwt_token_provider import JwtTokenProvider
 from src.services.assets_service import AssetsService
 from src.services.auth_service import AuthService
 from src.services.login_service import LoginService
+from src.services.marker_service import MarkerService
 from src.services.racks_service import RacksService
 from src.services.rooms_service import RoomsService
 from src.services.servers_service import ServersService
@@ -68,6 +73,7 @@ class Container:
     alert_repository: AlertRepository
     ticket_repository: TicketRepository
     ticket_history_repository: TicketHistoryRepository
+    marker_repository: MarkerRepository
     tokens: TokenProvider
     login_service: LoginService
     session_service: SessionService
@@ -79,6 +85,7 @@ class Container:
     servers_service: ServersService
     telemetry_service: TelemetryService
     telemetry_query_service: TelemetryQueryService
+    marker_service: MarkerService
 
 
 def build_container(
@@ -119,6 +126,9 @@ def build_container(
     ticket_history_repository = SqlAlchemyTicketHistoryRepository(
         session_factory=database.create_session
     )
+    marker_repository = SqlAlchemyMarkerRepository(
+        session_factory=database.create_session
+    )
 
     tokens = JwtTokenProvider(
         secret=jwt_secret,
@@ -137,6 +147,7 @@ def build_container(
         alert_repository=alert_repository,
         ticket_repository=ticket_repository,
         ticket_history_repository=ticket_history_repository,
+        marker_repository=marker_repository,
         tokens=tokens,
         login_service=LoginService(
             auth_service=auth_service,
@@ -164,5 +175,9 @@ def build_container(
             stale_after_seconds=stale_after_seconds,
             offline_after_seconds=offline_after_seconds,
             poll_interval_seconds=poll_interval_seconds,
+        ),
+        marker_service=MarkerService(
+            repository=marker_repository,
+            assets=assets,
         ),
     )
