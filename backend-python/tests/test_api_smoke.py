@@ -204,6 +204,53 @@ class TestBackendAPI(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 401)
 
+    def test_09_asset_role_matrix(self):
+        target_id = "00000000-0000-0000-0000-000000000001"
+        resources = ("sites", "rooms", "racks", "servers")
+
+        for resource in resources:
+            for role, headers in self.headers_by_role.items():
+                with self.subTest(resource=resource, role=role, action="read"):
+                    response = self.client.get(
+                        f"/{resource}",
+                        headers=headers,
+                    )
+                    self.assertEqual(response.status_code, 200)
+
+                expected_write_status = 403 if role == "Technician" else 400
+                with self.subTest(resource=resource, role=role, action="create"):
+                    response = self.client.post(
+                        f"/{resource}",
+                        headers=headers,
+                        json={},
+                    )
+                    self.assertEqual(
+                        response.status_code,
+                        expected_write_status,
+                    )
+
+                with self.subTest(resource=resource, role=role, action="update"):
+                    response = self.client.patch(
+                        f"/{resource}/{target_id}",
+                        headers=headers,
+                        json={},
+                    )
+                    self.assertEqual(
+                        response.status_code,
+                        expected_write_status,
+                    )
+
+                expected_delete_status = 404 if role == "Administrator" else 403
+                with self.subTest(resource=resource, role=role, action="delete"):
+                    response = self.client.delete(
+                        f"/{resource}/{target_id}",
+                        headers=headers,
+                    )
+                    self.assertEqual(
+                        response.status_code,
+                        expected_delete_status,
+                    )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
