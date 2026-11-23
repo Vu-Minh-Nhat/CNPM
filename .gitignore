@@ -67,8 +67,26 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 **/.env
 **/.env.*
 !**/.env.example
+
 # Python
 **/.venv/
 **/__pycache__/
 *.py[cod]
 **/.pytest_cache/
+
+# Environment files
+**/.env
+**/.env.*
+!**/.env.example
+
+# TLS private keys and local certificates
+**/*.key
+**/*.pem
+**/certs/
+**/certs-v2/
+**/.dev-ca/
+**/.dev-ca-v2/
+
+# Local database backups and temporary files
+*.dump
+*.bak

@@ -1,6 +1,5 @@
 
-import hmac
-import os
+import hashlib
 from datetime import datetime, timezone
 from math import isfinite
 
@@ -12,6 +11,7 @@ from src.domain.exceptions import (
     ResourceNotFoundError,
     ValidationError,
 )
+from src.services.agent_service import AgentService
 from src.services.session_service import SessionService
 from src.services.telemetry_service import TelemetryService
 
@@ -19,32 +19,71 @@ from src.services.telemetry_service import TelemetryService
 def create_telemetry_blueprint(
     telemetry_service: TelemetryService,
     session_service: SessionService,
+    agent_service: AgentService,
 ):
     blueprint = Blueprint("telemetry", __name__, url_prefix="/telemetry")
 
     @blueprint.post("")
     def ingest_telemetry():
-        # 1. Authenticate Agent
-        configured_key = os.getenv("TELEMETRY_AGENT_KEY", "").strip()
-        provided_key = request.headers.get("X-Agent-Key", "")
 
-        if not configured_key:
-            return jsonify({
-                "message": "Server chua cau hinh Agent API key.",
-                "error": "ServiceUnavailable",
-                "statusCode": 503,
-            }), 503
+        # ==========================================
+        # 1. AUTHENTICATE AGENT USING TLS CERTIFICATE
+        # ==========================================
 
-        if not provided_key or not hmac.compare_digest(
-            provided_key, configured_key
-        ):
+        # Get the TLS socket from the current request.
+        tls_socket = request.environ.get("werkzeug.socket")
+
+        if tls_socket is None:
             return jsonify({
-                "message": "Agent API key khong hop le.",
+                "message": "Khong tim thay ket noi TLS hop le.",
                 "error": "Unauthorized",
                 "statusCode": 401,
             }), 401
 
-        # 2. Validate request body
+        # Extract the client certificate.
+        try:
+            certificate_der = tls_socket.getpeercert(
+                binary_form=True
+            )
+        except (AttributeError, OSError):
+            certificate_der = None
+
+        if not certificate_der:
+            return jsonify({
+                "message": "Client certificate la bat buoc.",
+                "error": "Unauthorized",
+                "statusCode": 401,
+            }), 401
+
+        # Calculate SHA-256 fingerprint.
+        certificate_fingerprint = hashlib.sha256(
+            certificate_der
+        ).hexdigest()
+
+        # Authenticate Agent against Agent Registry.
+        try:
+            agent = agent_service.authenticate_agent(
+                certificate_fingerprint
+            )
+
+        except SQLAlchemyError:
+            return jsonify({
+                "message": "Agent Registry tam thoi khong kha dung.",
+                "error": "ServiceUnavailable",
+                "statusCode": 503,
+            }), 503
+
+        if agent is None:
+            return jsonify({
+                "message": "Agent khong hop le hoac da bi vo hieu hoa.",
+                "error": "Unauthorized",
+                "statusCode": 401,
+            }), 401
+
+        # ==========================================
+        # 2. VALIDATE REQUEST BODY
+        # ==========================================
+
         data = request.get_json(silent=True)
 
         if not isinstance(data, dict):
@@ -64,7 +103,8 @@ def create_telemetry_blueprint(
         ]
 
         missing_fields = [
-            field for field in required_fields if field not in data
+            field for field in required_fields
+            if field not in data
         ]
 
         if missing_fields:
@@ -75,25 +115,43 @@ def create_telemetry_blueprint(
                 "statusCode": 400,
             }), 400
 
-        # 3. Check Agent permission for Node
-        allowed_node_ids = {
-            item.strip()
-            for item in os.getenv(
-                "TELEMETRY_AGENT_NODE_IDS", ""
-            ).split(",")
-            if item.strip()
-        }
+        # ==========================================
+        # 3. CHECK AGENT PERMISSION FOR NODE
+        # ==========================================
 
-        node_id = str(data["node_id"])
+        node_id = str(data["node_id"]).strip()
 
-        if node_id not in allowed_node_ids:
+        if not node_id:
+            return jsonify({
+                "message": "Node ID khong hop le.",
+                "error": "BadRequest",
+                "statusCode": 400,
+            }), 400
+
+        try:
+            has_access = agent_service.has_node_access(
+                agent.id,
+                node_id,
+            )
+
+        except SQLAlchemyError:
+            return jsonify({
+                "message": "Khong the kiem tra quyen truy cap Node.",
+                "error": "ServiceUnavailable",
+                "statusCode": 503,
+            }), 503
+
+        if not has_access:
             return jsonify({
                 "message": "Agent khong co quyen gui du lieu cho Node nay.",
                 "error": "Forbidden",
                 "statusCode": 403,
             }), 403
 
-        # 4. Validate timestamp and metric values
+        # ==========================================
+        # 4. VALIDATE TIMESTAMP AND METRIC VALUES
+        # ==========================================
+
         try:
             measured_at = datetime.fromisoformat(
                 str(data["measured_at"]).replace("Z", "+00:00")
@@ -130,7 +188,10 @@ def create_telemetry_blueprint(
                 "statusCode": 400,
             }), 400
 
-        # 5. Save telemetry
+        # ==========================================
+        # 5. SAVE TELEMETRY
+        # ==========================================
+
         try:
             record = telemetry_service.ingest(
                 message_id=str(data["message_id"]),
@@ -176,7 +237,10 @@ def create_telemetry_blueprint(
                 "statusCode": 500,
             }), 500
 
-        # 6. Return saved record
+        # ==========================================
+        # 6. RETURN SAVED RECORD
+        # ==========================================
+
         return jsonify({
             "id": str(record.id),
             "message_id": str(record.message_id),

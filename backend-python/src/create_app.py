@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
+from src.api.controllers.agents_controller import create_agents_blueprint
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
@@ -34,7 +35,7 @@ def create_app() -> Flask:
     database_url = os.getenv("DATABASE_URL", "").strip()
 
     if not database_url:
-        raise RuntimeError("Chưa cấu hình DATABASE_URL trong .env.")
+        raise RuntimeError("DATABASE_URL is not configured in .env.")
 
     jwt_secret = os.getenv("JWT_SECRET", "")
 
@@ -44,7 +45,7 @@ def create_app() -> Flask:
         )
     except ValueError as error:
         raise RuntimeError(
-            "JWT_EXPIRES_IN_SECONDS phải là số nguyên."
+            "JWT_EXPIRES_IN_SECONDS must be an integer."
         ) from error
 
     database = Database(database_url)
@@ -98,6 +99,14 @@ def create_app() -> Flask:
         )
     )
 
+    # Agent Registry: chĂ¡Â»â€° Administrator Ă„â€˜Ă†Â°Ă¡Â»Â£c quĂ¡ÂºÂ£n lÄ‚Â½ Agent.
+    app.register_blueprint(
+        create_agents_blueprint(
+            agent_service=container.agent_service,
+            session_service=container.session_service,
+        )
+    )
+
     app.register_blueprint(
         create_markers_blueprint(
             marker_service=container.marker_service,
@@ -144,6 +153,7 @@ def create_app() -> Flask:
         create_telemetry_blueprint(
             telemetry_service=container.telemetry_service,
             session_service=container.session_service,
+            agent_service=container.agent_service,
         )
     )
 

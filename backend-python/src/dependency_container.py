@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from src.services.telemetry_query_service import TelemetryQueryService
 
 from src.domain.repositories.account_repository import AccountRepository
+from src.domain.repositories.agent_repository import AgentRepository
 from src.domain.repositories.alert_repository import AlertRepository
 from src.domain.repositories.asset_repository import AssetRepository
 from src.domain.repositories.marker_repository import MarkerRepository
@@ -16,6 +17,9 @@ from src.domain.security.token_provider import TokenProvider
 from src.infrastructure.databases.database import Database
 from src.infrastructure.repositories.account_repository import (
     SqlAlchemyAccountRepository,
+)
+from src.infrastructure.repositories.agent_repository import (
+    SqlAlchemyAgentRepository,
 )
 from src.infrastructure.repositories.alert_repository import (
     SqlAlchemyAlertRepository,
@@ -52,6 +56,7 @@ from src.infrastructure.security.bcrypt_password_verifier import (
 )
 from src.infrastructure.security.jwt_token_provider import JwtTokenProvider
 
+from src.services.agent_service import AgentService
 from src.services.assets_service import AssetsService
 from src.services.auth_service import AuthService
 from src.services.login_service import LoginService
@@ -74,6 +79,8 @@ class Container:
     ticket_repository: TicketRepository
     ticket_history_repository: TicketHistoryRepository
     marker_repository: MarkerRepository
+    agent_repository: AgentRepository
+
     tokens: TokenProvider
     login_service: LoginService
     session_service: SessionService
@@ -86,6 +93,7 @@ class Container:
     telemetry_service: TelemetryService
     telemetry_query_service: TelemetryQueryService
     marker_service: MarkerService
+    agent_service: AgentService
 
 
 def build_container(
@@ -99,34 +107,48 @@ def build_container(
     accounts = SqlAlchemyAccountRepository(
         session_factory=database.create_session
     )
+
     assets = SqlAlchemyAssetRepository(
         session_factory=database.create_session
     )
+
     sites = SqlAlchemySiteRepository(
         session_factory=database.create_session
     )
+
     rooms = SqlAlchemyRoomRepository(
         session_factory=database.create_session
     )
+
     racks = SqlAlchemyRackRepository(
         session_factory=database.create_session
     )
+
     servers = SqlAlchemyServerRepository(
         session_factory=database.create_session
     )
+
     telemetry_repository = SqlAlchemyTelemetryRepository(
         session_factory=database.create_session
     )
+
     alert_repository = SqlAlchemyAlertRepository(
         session_factory=database.create_session
     )
+
     ticket_repository = SqlAlchemyTicketRepository(
         session_factory=database.create_session
     )
+
     ticket_history_repository = SqlAlchemyTicketHistoryRepository(
         session_factory=database.create_session
     )
+
     marker_repository = SqlAlchemyMarkerRepository(
+        session_factory=database.create_session
+    )
+
+    agent_repository = SqlAlchemyAgentRepository(
         session_factory=database.create_session
     )
 
@@ -148,27 +170,52 @@ def build_container(
         ticket_repository=ticket_repository,
         ticket_history_repository=ticket_history_repository,
         marker_repository=marker_repository,
+        agent_repository=agent_repository,
+
         tokens=tokens,
+
         login_service=LoginService(
             auth_service=auth_service,
             token_provider=tokens,
         ),
+
         session_service=SessionService(
             accounts=accounts,
             tokens=tokens,
         ),
+
         users_service=UsersService(
             accounts=accounts,
             password_hasher=BcryptPasswordVerifier(),
         ),
-        assets_service=AssetsService(assets=assets),
-        sites_service=SitesService(sites=sites),
-        rooms_service=RoomsService(rooms=rooms, sites=sites),
-        racks_service=RacksService(racks=racks, rooms=rooms),
-        servers_service=ServersService(servers=servers, racks=racks),
+
+        assets_service=AssetsService(
+            assets=assets,
+        ),
+
+        sites_service=SitesService(
+            sites=sites,
+        ),
+
+        rooms_service=RoomsService(
+            rooms=rooms,
+            sites=sites,
+        ),
+
+        racks_service=RacksService(
+            racks=racks,
+            rooms=rooms,
+        ),
+
+        servers_service=ServersService(
+            servers=servers,
+            racks=racks,
+        ),
+
         telemetry_service=TelemetryService(
             telemetry_repository=telemetry_repository,
         ),
+
         telemetry_query_service=TelemetryQueryService(
             telemetry_repository=telemetry_repository,
             server_repository=servers,
@@ -176,8 +223,14 @@ def build_container(
             offline_after_seconds=offline_after_seconds,
             poll_interval_seconds=poll_interval_seconds,
         ),
+
         marker_service=MarkerService(
             repository=marker_repository,
+            assets=assets,
+        ),
+
+        agent_service=AgentService(
+            repository=agent_repository,
             assets=assets,
         ),
     )
