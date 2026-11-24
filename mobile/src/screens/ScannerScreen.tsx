@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -70,7 +70,7 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
       {permission?.granted ? (
         <View style={styles.cameraWrapper}>
           <CameraView
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
             facing="back"
             barcodeScannerSettings={{
               barcodeTypes: ["qr", "code128", "code39", "datamatrix"],
