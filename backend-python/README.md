@@ -76,7 +76,7 @@ Cập nhật `.env`:
 DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/arimms_python
 JWT_SECRET=
 JWT_EXPIRES_IN_SECONDS=86400
-CORS_ORIGINS=http://localhost:3001
+CORS_ORIGINS=http://localhost:3001,http://localhost:3002
 ```
 
 - `DATABASE_URL`: thông tin kết nối PostgreSQL.
@@ -156,13 +156,13 @@ hoặc vai trò của tài khoản đã tồn tại.
 Địa chỉ mặc định:
 
 ```text
-http://localhost:5000
+http://localhost:5002
 ```
 
 Kiểm tra hoạt động:
 
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:5000/health"
+Invoke-RestMethod -Uri "http://localhost:5002/health"
 ```
 
 Kết quả có:
@@ -181,7 +181,7 @@ và kiểm thử cục bộ. Cấu hình triển khai production là công việ
 Trong `frontend/.env.local`:
 
 ```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5002
 ```
 
 Khởi động lại Frontend sau khi sửa biến môi trường:
@@ -235,8 +235,8 @@ Mã lỗi thường gặp:
 
 ### OpenAPI và Swagger UI
 
-- Swagger UI: http://localhost:5000/docs/
-- Đặc tả OpenAPI: http://localhost:5000/openapi.json
+- Swagger UI: http://localhost:5002/docs/
+- Đặc tả OpenAPI: http://localhost:5002/openapi.json
 
 Để thử API được bảo vệ:
 
@@ -264,7 +264,7 @@ Trong cửa sổ PowerShell khác, đăng nhập Operator và Technician. Thay
 `__MAT_KHAU_SEED__` bằng mật khẩu đã đặt khi seed:
 
 ```powershell
-$base = "http://localhost:5000"
+$base = "http://localhost:5002"
 $password = "__MAT_KHAU_SEED__"
 $operatorLogin = Invoke-RestMethod -Method Post -Uri "$base/auth/login" `
     -ContentType "application/json" `

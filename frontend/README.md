@@ -52,7 +52,7 @@ Copy-Item .env.example .env.local
 Cấu hình địa chỉ Backend:
 
 ```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5002
 ```
 
 Nếu Backend đang chạy ở cổng khác, thay bằng địa chỉ thực tế.
@@ -71,7 +71,7 @@ Không đưa mật khẩu database hoặc khóa JWT vào biến này.
 Backend cần cho phép origin Frontend, ví dụ:
 
 ```dotenv
-CORS_ORIGINS=http://localhost:3001
+CORS_ORIGINS=http://localhost:3001,http://localhost:3002
 ```
 
 Biến `CORS_ORIGINS` được cấu hình ở Backend.
@@ -96,10 +96,10 @@ Giữ Backend và Frontend chạy trong hai Terminal riêng.
 
 | Thành phần | Địa chỉ |
 | --- | --- |
-| Backend Flask | http://localhost:5000 |
-| Kiểm tra hoạt động | http://localhost:5000/health |
-| Swagger UI | http://localhost:5000/docs/ |
-| OpenAPI JSON | http://localhost:5000/openapi.json |
+| Backend Flask | http://localhost:5002 |
+| Kiểm tra hoạt động | http://localhost:5002/health |
+| Swagger UI | http://localhost:5002/docs/ |
+| OpenAPI JSON | http://localhost:5002/openapi.json |
 
 ## 6. Tài khoản mẫu
 

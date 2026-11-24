@@ -77,7 +77,7 @@ def create_app() -> Flask:
         origin.strip()
         for origin in os.getenv(
             "CORS_ORIGINS",
-            "http://localhost:3001",
+            "http://localhost:3001,http://localhost:3002",
         ).split(",")
         if origin.strip()
     ]
