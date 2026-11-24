@@ -1,4 +1,4 @@
-from copy import deepcopy
+﻿from copy import deepcopy
 
 
 def build_openapi():
@@ -58,6 +58,10 @@ def build_openapi():
         "message": {"type": "string"},
     })
 
+    # ------------------------------------------------------------------
+    # Telemetry schemas
+    # ------------------------------------------------------------------
+
     schemas["TelemetryInput"] = input_schema({
         "message_id": uuid,
         "node_id": uuid,
@@ -97,27 +101,117 @@ def build_openapi():
         "measured_at": {
             "type": "string",
             "format": "date-time",
+            "description": "Thời điểm đo dữ liệu, theo ISO 8601.",
+        },
+        "received_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Thời điểm Backend nhận dữ liệu, theo ISO 8601.",
         },
         "cpu_percent": {
             "type": "number",
             "minimum": 0,
             "maximum": 100,
+            "description": "Mức sử dụng CPU, đơn vị phần trăm (%).",
         },
         "memory_percent": {
             "type": "number",
             "minimum": 0,
             "maximum": 100,
+            "description": "Mức sử dụng RAM, đơn vị phần trăm (%).",
         },
         "disk_percent": {
             "type": "number",
             "minimum": 0,
             "maximum": 100,
+            "description": "Mức sử dụng Disk, đơn vị phần trăm (%).",
         },
-        "received_at": {
+    })
+
+    schemas["TelemetryLatest"] = object_schema({
+        "node_id": uuid,
+        "server_time": {
             "type": "string",
             "format": "date-time",
         },
+        "latest": nullable("TelemetryRecord"),
+        "monitoring": object_schema({
+            "connection_status": {
+                "type": "string",
+                "description": "Trạng thái kết nối của Node.",
+                "example": "online",
+            },
+            "data_status": {
+                "type": "string",
+                "description": "Trạng thái mới/cũ của dữ liệu.",
+                "example": "fresh",
+            },
+            "last_received_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": True,
+            },
+            "last_measured_at": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": True,
+            },
+            "seconds_since_received": {
+                "type": "number",
+                "nullable": True,
+            },
+            "seconds_since_measured": {
+                "type": "number",
+                "nullable": True,
+            },
+            "stale_after_seconds": {
+                "type": "integer",
+            },
+            "offline_after_seconds": {
+                "type": "integer",
+            },
+        }),
+        "poll_interval_seconds": {
+            "type": "integer",
+            "minimum": 1,
+        },
     })
+
+    schemas["TelemetryHistory"] = object_schema({
+        "node_id": uuid,
+        "start": {
+            "type": "string",
+            "format": "date-time",
+        },
+        "end": {
+            "type": "string",
+            "format": "date-time",
+        },
+        "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+        },
+        "count": {
+            "type": "integer",
+            "minimum": 0,
+        },
+        "limit_reached": {
+            "type": "boolean",
+            "description": (
+                "True khi số bản ghi trả về bằng limit; "
+                "không khẳng định chắc chắn còn bản ghi tiếp theo."
+            ),
+        },
+        "items": {
+            "type": "array",
+            "items": ref("TelemetryRecord"),
+        },
+    })
+
+    # ------------------------------------------------------------------
+    # Health and Authentication schemas
+    # ------------------------------------------------------------------
 
     schemas["Health"] = object_schema({
         "status": {"type": "string", "example": "ok"},
@@ -174,6 +268,10 @@ def build_openapi():
         {"role": role},
         ["role"],
     )
+
+    # ------------------------------------------------------------------
+    # Asset schemas
+    # ------------------------------------------------------------------
 
     site_fields = {
         "id": uuid,
@@ -320,6 +418,10 @@ def build_openapi():
         "node": ref("Node"),
     })
 
+    # ------------------------------------------------------------------
+    # Resource definitions
+    # ------------------------------------------------------------------
+
     resources = (
         (
             "sites",
@@ -378,6 +480,10 @@ def build_openapi():
         ),
     )
 
+    # ------------------------------------------------------------------
+    # OpenAPI helper functions
+    # ------------------------------------------------------------------
+
     def response(description, schema):
         return {
             "description": description,
@@ -394,6 +500,7 @@ def build_openapi():
         403: "Không đủ quyền.",
         404: "Không tìm thấy dữ liệu.",
         409: "Trùng dữ liệu hoặc còn quan hệ phụ thuộc.",
+        503: "Database hoặc dịch vụ tạm thời không khả dụng.",
     }
 
     def operation(
@@ -438,6 +545,10 @@ def build_openapi():
             }
 
         return result
+
+    # ------------------------------------------------------------------
+    # Core API paths
+    # ------------------------------------------------------------------
 
     paths = {
         "/health": {
@@ -598,17 +709,160 @@ def build_openapi():
         ),
     }
 
+    # ------------------------------------------------------------------
+    # Telemetry Query API
+    # ------------------------------------------------------------------
+
+    paths["/telemetry/nodes/{node_id}/latest"] = {
+        "parameters": [{
+            "name": "node_id",
+            "in": "path",
+            "required": True,
+            "description": "UUID của Node cần truy vấn.",
+            "schema": uuid,
+        }],
+        "get": operation(
+            "Telemetry",
+            "Lấy dữ liệu Telemetry mới nhất của Node",
+            ref("TelemetryLatest"),
+            errors=(400, 401, 403, 404, 503),
+        ),
+    }
+
+    paths["/telemetry/nodes/{node_id}/history"] = {
+        "parameters": [{
+            "name": "node_id",
+            "in": "path",
+            "required": True,
+            "description": "UUID của Node cần truy vấn.",
+            "schema": uuid,
+        }],
+        "get": {
+            **operation(
+                "Telemetry",
+                "Lấy lịch sử Telemetry của Node",
+                ref("TelemetryHistory"),
+                errors=(400, 401, 403, 404, 503),
+            ),
+            "description": (
+                "Lọc theo measured_at trong khoảng [start, end). "
+                "Kết quả sắp xếp tăng dần theo measured_at, "
+                "received_at và id. "
+                "Múi giờ của start và end là bắt buộc."
+            ),
+            "parameters": [
+                {
+                    "name": "start",
+                    "in": "query",
+                    "required": True,
+                    "description": (
+                        "Thời điểm bắt đầu, được tính vào kết quả. "
+                        "Phải là ISO 8601 có múi giờ."
+                    ),
+                    "schema": {
+                        "type": "string",
+                        "format": "date-time",
+                    },
+                    "example": "2026-11-24T00:00:00Z",
+                },
+                {
+                    "name": "end",
+                    "in": "query",
+                    "required": True,
+                    "description": (
+                        "Thời điểm kết thúc, không được tính vào "
+                        "kết quả. Phải lớn hơn start."
+                    ),
+                    "schema": {
+                        "type": "string",
+                        "format": "date-time",
+                    },
+                    "example": "2026-11-25T00:00:00Z",
+                },
+                {
+                    "name": "limit",
+                    "in": "query",
+                    "required": False,
+                    "description": "Số bản ghi tối đa cần trả về.",
+                    "schema": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 1000,
+                        "default": 1000,
+                    },
+                },
+            ],
+        },
+    }
+
+    # ------------------------------------------------------------------
+    paths["/telemetry/nodes/{node_id}/latest"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["example"] = {
+        "node_id": "0fa96124-f0ab-4cb6-8919-8fcd4c8c6fad",
+        "server_time": "2026-11-24T08:00:00+00:00",
+        "latest": {
+            "id": "6d2c3b31-6eaf-45e7-bd5a-2c5e3aaf43d0",
+            "message_id": "c2e50e44-f789-4e1c-a8f4-abc123456789",
+            "node_id": "0fa96124-f0ab-4cb6-8919-8fcd4c8c6fad",
+            "measured_at": "2026-11-24T07:59:55+00:00",
+            "received_at": "2026-11-24T07:59:56+00:00",
+            "cpu_percent": 45.5,
+            "memory_percent": 68.2,
+            "disk_percent": 72.0,
+        },
+        "monitoring": {
+            "connection_status": "online",
+            "data_status": "fresh",
+            "last_received_at": "2026-11-24T07:59:56+00:00",
+            "last_measured_at": "2026-11-24T07:59:55+00:00",
+            "seconds_since_received": 4,
+            "seconds_since_measured": 5,
+            "stale_after_seconds": 30,
+            "offline_after_seconds": 90,
+        },
+        "poll_interval_seconds": 5,
+    }
+
+    paths["/telemetry/nodes/{node_id}/history"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["example"] = {
+        "node_id": "0fa96124-f0ab-4cb6-8919-8fcd4c8c6fad",
+        "start": "2026-11-24T00:00:00+00:00",
+        "end": "2026-11-25T00:00:00+00:00",
+        "limit": 100,
+        "count": 1,
+        "limit_reached": False,
+        "items": [
+            {
+                "id": "6d2c3b31-6eaf-45e7-bd5a-2c5e3aaf43d0",
+                "message_id": "c2e50e44-f789-4e1c-a8f4-abc123456789",
+                "node_id": "0fa96124-f0ab-4cb6-8919-8fcd4c8c6fad",
+                "measured_at": "2026-11-24T07:59:55+00:00",
+                "received_at": "2026-11-24T07:59:56+00:00",
+                "cpu_percent": 45.5,
+                "memory_percent": 68.2,
+                "disk_percent": 72.0,
+            }
+        ],
+    }
+    # Telemetry Agent Ingestion API
+    # ------------------------------------------------------------------
+
     paths["/telemetry"] = {
         "post": {
             "tags": ["Telemetry"],
             "summary": "Agent gửi dữ liệu Telemetry cho Node",
             "description": (
-                "Xác thực Agent bằng X-Agent-Key. "
-                "Agent chỉ được gửi dữ liệu cho Node được cấp quyền. "
-                "Gửi lại cùng message_id và payload sẽ không tạo bản ghi trùng. "
-                "Nếu message_id trùng nhưng payload khác, trả về 409."
+                "Agent phải xác thực bằng TLS client certificate. "
+                "Backend kiểm tra SHA-256 fingerprint của chứng chỉ "
+                "với Agent Registry và kiểm tra quyền truy cập Node. "
+                "Không sử dụng Bearer JWT hoặc X-Agent-Key cho endpoint "
+                "này. Gửi lại cùng message_id và payload sẽ không tạo "
+                "bản ghi trùng. Nếu message_id trùng nhưng payload "
+                "khác, trả về 409."
             ),
-            "security": [{"agentKey": []}],
+            "security": [],
             "requestBody": {
                 "required": True,
                 "content": {
@@ -627,7 +881,7 @@ def build_openapi():
                     ref("Error"),
                 ),
                 "401": response(
-                    "Agent chưa xác thực.",
+                    "Thiếu hoặc không hợp lệ TLS client certificate.",
                     ref("Error"),
                 ),
                 "403": response(
@@ -639,7 +893,7 @@ def build_openapi():
                     ref("Error"),
                 ),
                 "503": response(
-                    "Database tạm thời không khả dụng.",
+                    "Database hoặc Agent Registry tạm thời không khả dụng.",
                     ref("Error"),
                 ),
                 "500": response(
@@ -649,6 +903,10 @@ def build_openapi():
             },
         }
     }
+
+    # ------------------------------------------------------------------
+    # CRUD resource API paths
+    # ------------------------------------------------------------------
 
     for path, model, detail, properties, required in resources:
         create_name = f"Create_{path}"
@@ -711,13 +969,19 @@ def build_openapi():
             ),
         }
 
+    # ------------------------------------------------------------------
+    # Return OpenAPI document
+    # ------------------------------------------------------------------
+
     return {
         "openapi": "3.0.3",
         "info": {
             "title": "AR-IMMS Backend Python",
             "version": "1.0.0",
             "description": (
-                "API lõi Flask. Các API có khóa yêu cầu Bearer JWT. "
+                "API lõi Flask. Các API dành cho Web Portal yêu cầu "
+                "Bearer JWT. Endpoint POST /telemetry dành cho Agent "
+                "sử dụng TLS client certificate (mTLS). "
                 "Code và name được loại bỏ khoảng trắng đầu/cuối "
                 "trước khi kiểm tra. Các trường không có trong schema "
                 "tạo/cập nhật tài sản sẽ bị từ chối."
@@ -732,11 +996,6 @@ def build_openapi():
                     "type": "http",
                     "scheme": "bearer",
                     "bearerFormat": "JWT",
-                },
-                "agentKey": {
-                    "type": "apiKey",
-                    "in": "header",
-                    "name": "X-Agent-Key",
                 },
             },
             "schemas": schemas,
