@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "AR-IMMS Technician",
+    "slug": "arimms-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "AR-IMMS cần quyền camera để quét Marker trên thiết bị/node."
+      }
+    },
+    "android": {
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "AR-IMMS cần quyền camera để quét Marker trên thiết bị/node."
+        }
+      ],
+      "expo-secure-store",
+      "expo-asset"
+    ]
+  }
+}
