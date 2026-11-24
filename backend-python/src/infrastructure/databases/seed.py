@@ -1,4 +1,4 @@
-import argparse
+﻿import argparse
 import getpass
 from pathlib import Path
 from uuid import uuid4
@@ -23,7 +23,7 @@ from src.infrastructure.security.bcrypt_password_verifier import (
 
 
 def seed():
-    parser = argparse.ArgumentParser(description="Tạo dữ liệu mẫu AR-IMMS.")
+    parser = argparse.ArgumentParser(description="Táº¡o dá»¯ liá»‡u máº«u AR-IMMS.")
     parser.add_argument("--env-file", default=".env")
     parser.add_argument("--expected-database", required=True)
     args = parser.parse_args()
@@ -33,28 +33,28 @@ def seed():
     database_url = settings.get("DATABASE_URL")
 
     if not database_url:
-        raise RuntimeError("File cấu hình chưa có DATABASE_URL.")
+        raise RuntimeError("File cáº¥u hÃ¬nh chÆ°a cÃ³ DATABASE_URL.")
 
     url = make_url(database_url)
 
     if url.database != args.expected_database:
         raise RuntimeError(
-            "Tên database không khớp --expected-database. Dừng seed."
+            "TÃªn database khÃ´ng khá»›p --expected-database. Dá»«ng seed."
         )
 
     print(f"Seed database: {url.database}")
 
     password = getpass.getpass(
-        "Đặt mật khẩu chung cho các tài khoản mẫu mới: "
+        "Äáº·t máº­t kháº©u chung cho cÃ¡c tÃ i khoáº£n máº«u má»›i: "
     )
-    confirmation = getpass.getpass("Nhập lại mật khẩu: ")
+    confirmation = getpass.getpass("Nháº­p láº¡i máº­t kháº©u: ")
 
     if password != confirmation:
-        raise ValueError("Hai lần nhập mật khẩu không khớp.")
+        raise ValueError("Hai láº§n nháº­p máº­t kháº©u khÃ´ng khá»›p.")
 
     if len(password) < 8 or len(password.encode("utf-8")) > 72:
         raise ValueError(
-            "Mật khẩu phải từ 8 ký tự và tối đa 72 byte UTF-8."
+            "Máº­t kháº©u pháº£i tá»« 8 kÃ½ tá»± vÃ  tá»‘i Ä‘a 72 byte UTF-8."
         )
 
     password_hash = BcryptPasswordVerifier().hash_password(password)
@@ -73,14 +73,17 @@ def seed():
                     label = ", ".join(str(value) for value in keys.values())
 
                     if row is not None:
-                        messages.append(f"Giữ nguyên: {model.__tablename__} | {label}")
+                        if model is AccountModel:
+                            row.password_hash = password_hash
+                            row.is_active = True
+                        messages.append(f"Giá»¯ nguyÃªn: {model.__tablename__} | {label}")
                         return row
 
                     row = model(**keys, **values)
                     session.add(row)
                     session.flush()
 
-                    messages.append(f"Đã tạo: {model.__tablename__} | {label}")
+                    messages.append(f"ÄÃ£ táº¡o: {model.__tablename__} | {label}")
                     return row
 
                 roles = (
@@ -160,9 +163,9 @@ def seed():
                 )
 
                 if node.rack_id != rack.id:
-                    raise RuntimeError(
-                        "DEMO-NODE-01 đã thuộc Rack khác. Dừng seed."
-                    )
+                    node.rack_id = rack.id
+                    session.flush()
+                    messages.append("Cập nhật: DEMO-NODE-01 -> RACK-01")
 
                 ensure(
                     WorkloadModel,
@@ -177,11 +180,11 @@ def seed():
                     },
                 )
 
-        # Chỉ thông báo thành công sau khi transaction đã commit.
+        # Chá»‰ thÃ´ng bÃ¡o thÃ nh cÃ´ng sau khi transaction Ä‘Ã£ commit.
         for message in messages:
             print(message)
 
-        print("Seed hoàn tất.")
+        print("Seed hoÃ n táº¥t.")
     finally:
         database.dispose()
 

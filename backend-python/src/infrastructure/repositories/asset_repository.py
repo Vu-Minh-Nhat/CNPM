@@ -71,6 +71,15 @@ class SqlAlchemyAssetRepository(AssetRepository):
             workloads=workloads,
         )
 
+    def get_by_id(self, node_id: str) -> Node | None:
+        with self._session_factory() as session:
+            model = session.get(NodeModel, node_id)
+
+            if model is None:
+                return None
+
+            return self._to_domain(model)
+
     def list_nodes(self) -> list[Node]:
         with self._session_factory() as session:
             statement = (

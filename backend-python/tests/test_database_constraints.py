@@ -92,7 +92,7 @@ class TestDatabaseConstraints(unittest.TestCase):
             DELETE FROM sites
             WHERE code = 'DEMO-SITE'
             """,
-            "23503",
+            "23001",
         )
 
 

@@ -64,7 +64,7 @@ class SqlAlchemyRackRepository(RackRepository):
                 "Mã Rack đã tồn tại trong Room."
             ) from error
 
-        if code == "23503":
+        if code in {"23503", "23001"}:
             if deleting:
                 raise ResourceConflictError(
                     "Không thể xóa Rack còn dữ liệu liên quan."

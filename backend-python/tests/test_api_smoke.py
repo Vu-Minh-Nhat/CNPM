@@ -1,4 +1,4 @@
-import getpass
+﻿import getpass
 import os
 import unittest
 from pathlib import Path
@@ -21,7 +21,7 @@ class TestBackendAPI(unittest.TestCase):
             or make_url(database_url).database != "arimms_python_check"
         ):
             raise RuntimeError(
-                "Kiểm thử yêu cầu database arimms_python_check."
+                "Kiá»ƒm thá»­ yÃªu cáº§u database arimms_python_check."
             )
 
         os.environ["DATABASE_URL"] = database_url
@@ -34,8 +34,8 @@ class TestBackendAPI(unittest.TestCase):
         )
 
         cls.client = cls.app.test_client()
-        cls.password = getpass.getpass(
-            "Mật khẩu chung đã đặt khi seed database kiểm tra: "
+        cls.password = os.getenv("TEST_SEED_PASSWORD") or getpass.getpass(
+            "Máº­t kháº©u chung Ä‘Ã£ Ä‘áº·t khi seed database kiá»ƒm tra: "
         )
 
         cls.headers_by_role = {}
@@ -57,14 +57,14 @@ class TestBackendAPI(unittest.TestCase):
 
             if response.status_code != 200:
                 raise RuntimeError(
-                    f"Không đăng nhập được tài khoản seed: {email}"
+                    f"KhÃ´ng Ä‘Äƒng nháº­p Ä‘Æ°á»£c tÃ i khoáº£n seed: {email}"
                 )
 
             data = response.get_json()
 
             if data.get("role") != role or not data.get("accessToken"):
                 raise RuntimeError(
-                    f"Phản hồi đăng nhập không hợp lệ: {email}"
+                    f"Pháº£n há»“i Ä‘Äƒng nháº­p khÃ´ng há»£p lá»‡: {email}"
                 )
 
             cls.headers_by_role[role] = {
@@ -156,7 +156,7 @@ class TestBackendAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_06_account_management_forbidden(self):
-        # UUID chỉ dùng làm đích kiểm tra quyền.
+        # UUID chá»‰ dÃ¹ng lÃ m Ä‘Ã­ch kiá»ƒm tra quyá»n.
         target_id = "00000000-0000-0000-0000-000000000001"
 
         for role in ("Operator", "Technician"):
@@ -179,7 +179,7 @@ class TestBackendAPI(unittest.TestCase):
                     self.assertEqual(response.status_code, 403)
 
     def test_07_admin_invalid_payload(self):
-        # Body rỗng không được phép tạo hoặc sửa tài khoản.
+        # Body rá»—ng khÃ´ng Ä‘Æ°á»£c phÃ©p táº¡o hoáº·c sá»­a tÃ i khoáº£n.
         response = self.client.post(
             "/users",
             headers=self.admin_headers,

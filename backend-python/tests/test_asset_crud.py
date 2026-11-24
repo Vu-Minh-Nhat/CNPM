@@ -1,4 +1,4 @@
-import getpass
+﻿import getpass
 import os
 import unittest
 from pathlib import Path
@@ -22,7 +22,7 @@ class TestAssetCRUD(unittest.TestCase):
             or make_url(database_url).database != "arimms_python_check"
         ):
             raise RuntimeError(
-                "Kiểm thử yêu cầu database arimms_python_check."
+                "Kiá»ƒm thá»­ yÃªu cáº§u database arimms_python_check."
             )
 
         os.environ["DATABASE_URL"] = database_url
@@ -34,8 +34,8 @@ class TestAssetCRUD(unittest.TestCase):
 
         cls.client = cls.app.test_client()
 
-        password = getpass.getpass(
-            "Mật khẩu Administrator của database kiểm tra: "
+        password = os.getenv("TEST_SEED_PASSWORD") or getpass.getpass(
+            "Máº­t kháº©u Administrator cá»§a database kiá»ƒm tra: "
         )
 
         response = cls.client.post(
@@ -47,12 +47,12 @@ class TestAssetCRUD(unittest.TestCase):
         )
 
         if response.status_code != 200:
-            raise RuntimeError("Đăng nhập Administrator thất bại.")
+            raise RuntimeError("ÄÄƒng nháº­p Administrator tháº¥t báº¡i.")
 
         data = response.get_json()
 
         if data.get("role") != "Administrator":
-            raise RuntimeError("Cần tài khoản Administrator.")
+            raise RuntimeError("Cáº§n tÃ i khoáº£n Administrator.")
 
         cls.headers = {
             "Authorization": f"Bearer {data['accessToken']}"
@@ -86,7 +86,7 @@ class TestAssetCRUD(unittest.TestCase):
     def cleanup_assets(self):
         errors = []
 
-        # Xóa từ Server lên Site.
+        # XÃ³a tá»« Server lÃªn Site.
         for resource, asset_id, expected_code in reversed(self.created):
             path = f"/{resource}/{asset_id}"
             detail = self.client.get(path, headers=self.headers)
@@ -99,21 +99,21 @@ class TestAssetCRUD(unittest.TestCase):
                 or detail.get_json().get("code") != expected_code
                 or not expected_code.startswith(self.prefix)
             ):
-                errors.append(f"Không xác nhận được tài sản: {path}")
+                errors.append(f"KhÃ´ng xÃ¡c nháº­n Ä‘Æ°á»£c tÃ i sáº£n: {path}")
                 continue
 
             response = self.client.delete(path, headers=self.headers)
 
             if response.status_code != 200:
                 errors.append(
-                    f"Xóa thất bại {path}: {response.status_code}"
+                    f"XÃ³a tháº¥t báº¡i {path}: {response.status_code}"
                 )
                 continue
 
             after = self.client.get(path, headers=self.headers)
 
             if after.status_code != 404:
-                errors.append(f"Tài sản vẫn tồn tại: {path}")
+                errors.append(f"TÃ i sáº£n váº«n tá»“n táº¡i: {path}")
 
         if errors:
             raise AssertionError("; ".join(errors))
@@ -143,7 +143,7 @@ class TestAssetCRUD(unittest.TestCase):
             "name": "Automated test server",
         })
 
-        # Kiểm tra cập nhật và đọc lại cả bốn loại tài sản.
+        # Kiá»ƒm tra cáº­p nháº­t vÃ  Ä‘á»c láº¡i cáº£ bá»‘n loáº¡i tÃ i sáº£n.
         for resource, asset in (
             ("sites", site),
             ("rooms", room),
@@ -168,7 +168,7 @@ class TestAssetCRUD(unittest.TestCase):
                     new_name,
                 )
 
-        # Server phải trả đúng toàn bộ cây quan hệ.
+        # Server pháº£i tráº£ Ä‘Ãºng toÃ n bá»™ cÃ¢y quan há»‡.
         detail = self.client.get(
             f"/servers/{server['id']}",
             headers=self.headers,
@@ -182,7 +182,7 @@ class TestAssetCRUD(unittest.TestCase):
             detail["rack"]["room"]["site"]["id"], site["id"]
         )
 
-        # Không được xóa tài sản cha đang có dữ liệu con.
+        # KhÃ´ng Ä‘Æ°á»£c xÃ³a tÃ i sáº£n cha Ä‘ang cÃ³ dá»¯ liá»‡u con.
         for resource, asset in (
             ("sites", site),
             ("rooms", room),
@@ -195,7 +195,7 @@ class TestAssetCRUD(unittest.TestCase):
                 )
                 self.assertEqual(response.status_code, 409)
 
-        # Đổi sang Rack không tồn tại phải bị từ chối.
+        # Äá»•i sang Rack khÃ´ng tá»“n táº¡i pháº£i bá»‹ tá»« chá»‘i.
         response = self.client.patch(
             f"/servers/{server['id']}",
             headers=self.headers,
@@ -203,7 +203,7 @@ class TestAssetCRUD(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 400)
 
-        # Cập nhật trùng mã Server phải bị từ chối.
+        # Cáº­p nháº­t trÃ¹ng mÃ£ Server pháº£i bá»‹ tá»« chá»‘i.
         response = self.client.patch(
             f"/servers/{server['id']}",
             headers=self.headers,
@@ -211,7 +211,7 @@ class TestAssetCRUD(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 409)
 
-        # Hai yêu cầu lỗi không được thay đổi dữ liệu Server.
+        # Hai yÃªu cáº§u lá»—i khÃ´ng Ä‘Æ°á»£c thay Ä‘á»•i dá»¯ liá»‡u Server.
         response = self.client.get(
             f"/servers/{server['id']}",
             headers=self.headers,
