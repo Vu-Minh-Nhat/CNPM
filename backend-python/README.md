@@ -203,6 +203,8 @@ Chạy lệnh Frontend tại thư mục `frontend`.
 | Tạo tài khoản | POST /users |
 | Đổi vai trò | PATCH /users/{id}/role |
 | Tra cứu cây tài sản | GET /assets |
+| Ticket bảo trì | GET, POST /tickets; GET /tickets/{ticket_id}; GET /tickets/{ticket_id}/history |
+| Quy trình ticket | POST /tickets/{ticket_id}/assign, /start, /submit, /approve-close, /return; PATCH /tickets/{ticket_id}/work |
 | Site | GET, POST /sites; GET, PATCH, DELETE /sites/{id} |
 | Room | GET, POST /rooms; GET, PATCH, DELETE /rooms/{id} |
 | Rack | GET, POST /racks; GET, PATCH, DELETE /racks/{id} |
@@ -219,6 +221,7 @@ Phân quyền chính:
 - Administrator: quản trị tài khoản; xem, tạo, sửa, xóa tài sản.
 - Operator: xem, tạo và sửa tài sản; không xóa hoặc quản trị tài khoản.
 - Technician: xem tài sản; không tạo, sửa, xóa hoặc quản trị tài khoản.
+- Operator quản lý ticket; Technician chỉ xem và cập nhật ticket được phân công.
 
 Mã lỗi thường gặp:
 
@@ -241,6 +244,90 @@ Mã lỗi thường gặp:
 2. Copy giá trị accessToken.
 3. Nhấn Authorize và dán token, không thêm chữ Bearer.
 4. Thực hiện các yêu cầu theo quyền của tài khoản.
+
+### Chạy thử quy trình Ticket bảo trì
+
+Thực hiện tại PowerShell, với PostgreSQL, `.env`, dependencies và migration
+đã chuẩn bị theo các mục phía trên. Nếu cần dữ liệu demo, tạo seed trước:
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m src.infrastructure.databases.seed --expected-database arimms_python
+```
+
+Khởi động Backend trong một cửa sổ PowerShell:
+
+```powershell
+.\run.bat
+```
+
+Trong cửa sổ PowerShell khác, đăng nhập Operator và Technician. Thay
+`__MAT_KHAU_SEED__` bằng mật khẩu đã đặt khi seed:
+
+```powershell
+$base = "http://localhost:5000"
+$password = "__MAT_KHAU_SEED__"
+$operatorLogin = Invoke-RestMethod -Method Post -Uri "$base/auth/login" `
+    -ContentType "application/json" `
+    -Body (@{ email = "operator@arimms.local"; password = $password } | ConvertTo-Json)
+$technicianLogin = Invoke-RestMethod -Method Post -Uri "$base/auth/login" `
+    -ContentType "application/json" `
+    -Body (@{ email = "tech@arimms.local"; password = $password } | ConvertTo-Json)
+$operatorHeaders = @{ Authorization = "Bearer $($operatorLogin.accessToken)" }
+$technicianHeaders = @{ Authorization = "Bearer $($technicianLogin.accessToken)" }
+$technician = Invoke-RestMethod -Uri "$base/auth/me" -Headers $technicianHeaders
+```
+
+Lấy Node mẫu, tạo ticket, rồi phân công cho Technician:
+
+```powershell
+$nodes = Invoke-RestMethod -Uri "$base/assets" -Headers $operatorHeaders
+$node = $nodes | Where-Object { $_.code -eq "DEMO-NODE-01" } | Select-Object -First 1
+$ticket = Invoke-RestMethod -Method Post -Uri "$base/tickets" `
+    -Headers $operatorHeaders -ContentType "application/json" `
+    -Body (@{
+        node_id = $node.id
+        title = "Kiểm tra thiết bị"
+        description = "Kiểm tra tình trạng Node và ghi nhận kết quả."
+    } | ConvertTo-Json)
+$ticket = Invoke-RestMethod -Method Post -Uri "$base/tickets/$($ticket.id)/assign" `
+    -Headers $operatorHeaders -ContentType "application/json" `
+    -Body (@{ assigned_to = $technician.userId; version = $ticket.version } | ConvertTo-Json)
+```
+
+Technician bắt đầu xử lý, cập nhật tiến độ và gửi kết quả; Operator duyệt đóng:
+
+```powershell
+$ticket = Invoke-RestMethod -Method Post -Uri "$base/tickets/$($ticket.id)/start" `
+    -Headers $technicianHeaders -ContentType "application/json" `
+    -Body (@{ version = $ticket.version } | ConvertTo-Json)
+$ticket = Invoke-RestMethod -Method Patch -Uri "$base/tickets/$($ticket.id)/work" `
+    -Headers $technicianHeaders -ContentType "application/json" `
+    -Body (@{
+        version = $ticket.version
+        progress = 75
+        work_notes = "Đã kiểm tra thiết bị."
+        evidence = "Ảnh kiểm tra được lưu trong hồ sơ vận hành."
+    } | ConvertTo-Json)
+$ticket = Invoke-RestMethod -Method Post -Uri "$base/tickets/$($ticket.id)/submit" `
+    -Headers $technicianHeaders -ContentType "application/json" `
+    -Body (@{ version = $ticket.version; result = "Thiết bị hoạt động bình thường." } | ConvertTo-Json)
+$ticket = Invoke-RestMethod -Method Post -Uri "$base/tickets/$($ticket.id)/approve-close" `
+    -Headers $operatorHeaders -ContentType "application/json" `
+    -Body (@{ version = $ticket.version; note = "Đã kiểm tra kết quả." } | ConvertTo-Json)
+```
+
+Để xem lịch sử hoặc thử nhánh trả lại, gọi `GET /tickets/{ticket_id}/history`
+hoặc `POST /tickets/{ticket_id}/return` với body có `version` và `reason`.
+Mỗi lần ghi phải dùng `version` mới nhất trong phản hồi; nếu phiên bản đã cũ,
+API trả `409 Conflict`. `alert_id` có thể thêm vào payload tạo ticket, nhưng
+phải thuộc cùng Node. Bằng chứng hiện được gửi dưới dạng văn bản/tham chiếu,
+không phải tệp tải lên.
+
+Chạy kiểm thử tự động của ticket (không cần khởi động server riêng):
+
+```powershell
+& ".\.venv\Scripts\python.exe" -m unittest discover -s tests -p "test_ticket_service.py" -v
+```
 
 Swagger gọi API trên cùng host và cổng đang mở tài liệu.
 
