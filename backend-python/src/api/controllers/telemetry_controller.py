@@ -17,6 +17,32 @@ def _parse_timestamp_utc(ts_raw: Any) -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _extract_metrics(payload: Dict[str, Any]) -> Dict[str, Optional[float]]:
+    metrics: Dict[str, Optional[float]] = {}
+    raw_metrics = payload.get("metrics")
+    if isinstance(raw_metrics, dict):
+        for key in ("cpu", "ram", "disk"):
+            if key in raw_metrics:
+                val = raw_metrics[key]
+                metrics[key] = None if val is None else float(val)
+
+    fallback_map = {
+        "cpu": ("cpu", "cpu_percent"),
+        "ram": ("ram", "memory_percent", "ram_percent"),
+        "disk": ("disk", "disk_percent"),
+    }
+    for target_key, aliases in fallback_map.items():
+        if target_key in metrics:
+            continue
+        for alias in aliases:
+            if alias in payload:
+                val = payload[alias]
+                metrics[target_key] = None if val is None else float(val)
+                break
+
+    return metrics
+
+
 def forward_telemetry_to_detector(
     payload: Dict[str, Any],
     detector: Optional[AlertDetectorService] = None,
@@ -29,14 +55,7 @@ def forward_telemetry_to_detector(
     if not node_id:
         return
 
-    raw_metrics = payload.get("metrics")
-    metrics: Dict[str, Optional[float]] = {}
-    if isinstance(raw_metrics, dict):
-        for key in ("cpu", "ram", "disk"):
-            if key in raw_metrics:
-                val = raw_metrics[key]
-                metrics[key] = None if val is None else float(val)
-
+    metrics = _extract_metrics(payload)
     ts = _parse_timestamp_utc(payload.get("timestamp"))
     message_id = payload.get("message_id")
 
