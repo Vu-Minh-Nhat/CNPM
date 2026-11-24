@@ -1,0 +1,45 @@
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
+from flask import current_app
+from src.services.alert_detector_service import AlertDetectorService, TelemetrySample
+
+
+def _parse_timestamp_utc(ts_raw: Any) -> datetime:
+    if isinstance(ts_raw, datetime):
+        return ts_raw if ts_raw.tzinfo is not None else ts_raw.replace(tzinfo=timezone.utc)
+    if isinstance(ts_raw, str) and ts_raw.strip():
+        parsed = datetime.fromisoformat(ts_raw.strip().replace("Z", "+00:00"))
+        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc)
+
+
+def forward_telemetry_to_detector(
+    payload: Dict[str, Any],
+    detector: Optional[AlertDetectorService] = None,
+) -> None:
+    target_detector = detector or current_app.extensions.get("alert_detector")
+    if target_detector is None or not isinstance(payload, dict):
+        return
+
+    node_id = payload.get("node_id")
+    if not node_id:
+        return
+
+    raw_metrics = payload.get("metrics")
+    metrics: Dict[str, Optional[float]] = {}
+    if isinstance(raw_metrics, dict):
+        for key in ("cpu", "ram", "disk"):
+            if key in raw_metrics:
+                val = raw_metrics[key]
+                metrics[key] = None if val is None else float(val)
+
+    ts = _parse_timestamp_utc(payload.get("timestamp"))
+    message_id = payload.get("message_id")
+
+    sample = TelemetrySample(
+        node_id=str(node_id),
+        timestamp=ts,
+        metrics=metrics,
+        message_id=str(message_id) if message_id is not None else None,
+    )
+    target_detector.ingest_telemetry(sample)
