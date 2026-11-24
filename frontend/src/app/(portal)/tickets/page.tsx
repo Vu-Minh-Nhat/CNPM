@@ -16,10 +16,10 @@ import {
   startTicket,
   submitTicket,
   Ticket,
-  TicketAlert,
   TicketDetail,
   TicketStatus,
-  Technician,
+  type Technician,
+  type TicketAlert,
   updateTicketWork,
 } from "@/lib/tickets";
 import type { AssetNode } from "@/types/asset";
@@ -130,20 +130,21 @@ export default function TicketsPage() {
         }
         setRole(currentRole);
 
-        const [ticketItems, assetItems] = await Promise.all([
+        const isCurrentUserOperator = currentRole === "Operator";
+        const [ticketItems, assetItems, activeTechnicians, alertItems] = await Promise.all([
           getTickets(controller.signal),
           getAssets(controller.signal),
+          isCurrentUserOperator
+            ? getActiveTechnicians(controller.signal)
+            : Promise.resolve<Technician[]>([]),
+          isCurrentUserOperator
+            ? getTicketAlerts(controller.signal)
+            : Promise.resolve<TicketAlert[]>([]),
         ]);
         if (controller.signal.aborted) return;
         setTickets(ticketItems);
         setAssets(assetItems);
-
-        if (currentRole === "Operator") {
-          const [activeTechnicians, alertItems] = await Promise.all([
-            getActiveTechnicians(controller.signal),
-            getTicketAlerts(controller.signal),
-          ]);
-          if (controller.signal.aborted) return;
+        if (isCurrentUserOperator) {
           setTechnicians(activeTechnicians);
           setAlerts(alertItems);
         }
