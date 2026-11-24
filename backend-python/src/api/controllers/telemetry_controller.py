@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
-from flask import current_app
+
+from flask import Blueprint, current_app, jsonify, request
+
 from src.services.alert_detector_service import AlertDetectorService, TelemetrySample
+
+telemetry_bp = Blueprint("telemetry", __name__, url_prefix="/telemetry")
 
 
 def _parse_timestamp_utc(ts_raw: Any) -> datetime:
@@ -43,3 +47,13 @@ def forward_telemetry_to_detector(
         message_id=str(message_id) if message_id is not None else None,
     )
     target_detector.ingest_telemetry(sample)
+
+
+@telemetry_bp.post("")
+def ingest_telemetry():
+    payload = request.get_json(silent=True) or {}
+    if not isinstance(payload, dict) or not payload.get("node_id"):
+        return jsonify({"error": "Missing 'node_id'"}), 400
+
+    forward_telemetry_to_detector(payload)
+    return jsonify({"status": "accepted", "node_id": str(payload["node_id"])}), 202

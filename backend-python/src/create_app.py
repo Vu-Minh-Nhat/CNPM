@@ -1,8 +1,10 @@
 import os
+
 from flask import Flask
 from flask_cors import CORS
 
 from src.api.controllers.alert_rules_controller import register_alert_rule_routes
+from src.api.controllers.telemetry_controller import telemetry_bp
 from src.services.alert_detector_service import AlertDetectorService, AlertRuleManager
 from src.worker.alert_poller import AlertPoller, should_start_poller_in_flask
 
@@ -23,6 +25,9 @@ def attach_alerting_system(app: Flask) -> None:
 
     register_alert_rule_routes(app, rule_manager, detector=detector)
 
+    if "telemetry" not in app.blueprints:
+        app.register_blueprint(telemetry_bp)
+
     if should_start_poller_in_flask(app.debug):
         poller.start()
 
@@ -31,6 +36,5 @@ def create_app() -> Flask:
     app = Flask(__name__)
     CORS(app, origins=os.environ.get("CORS_ORIGINS", "http://localhost:3000").split(","))
 
-    # Giữ nguyên các blueprint / service khởi tạo gốc của dự án tại đây
     attach_alerting_system(app)
     return app
