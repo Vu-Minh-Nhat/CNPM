@@ -51,13 +51,14 @@ class SqlAlchemyRoomRepository(RoomRepository):
                 "Mã Room đã tồn tại trong Site."
             ) from error
 
-        if code == "23503":
+        if code in {"23503", "23001"}:
             if deleting:
                 raise ResourceConflictError(
                     "Không thể xóa Room còn dữ liệu liên quan."
                 ) from error
 
-            raise ValidationError("Site không tồn tại.") from error
+            if code == "23503":
+                raise ValidationError("Site không tồn tại.") from error
 
         if code in {"23502", "23514", "22001"}:
             raise ValidationError(

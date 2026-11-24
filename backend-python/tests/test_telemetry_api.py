@@ -1,9 +1,9 @@
 
-import os
+import hashlib
 import unittest
 from datetime import datetime, timezone
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 from flask import Flask
@@ -14,29 +14,52 @@ from src.api.controllers.telemetry_controller import (
 from src.domain.exceptions import ResourceConflictError
 
 
-class TestTelemetryAPI(unittest.TestCase):
-    def setUp(self):
-        self.agent_key = "test-agent-key"
-        self.node_id = str(uuid4())
+class FakeTLSSocket:
+    """Giả lập TLS socket có client certificate."""
 
-        self.env = patch.dict(os.environ, {
-            "TELEMETRY_AGENT_KEY": self.agent_key,
-            "TELEMETRY_AGENT_NODE_IDS": self.node_id,
-        })
-        self.env.start()
-        self.addCleanup(self.env.stop)
+    def __init__(self, certificate_der):
+        self.certificate_der = certificate_der
+
+    def getpeercert(self, binary_form=False):
+        if binary_form:
+            return self.certificate_der
+        return {}
+
+
+class TestTelemetryAPI(unittest.TestCase):
+
+    def setUp(self):
+        self.node_id = str(uuid4())
+        self.agent_id = str(uuid4())
+
+        self.certificate_der = b"fake-client-certificate"
+        self.fingerprint = hashlib.sha256(
+            self.certificate_der
+        ).hexdigest()
+
+        self.agent = SimpleNamespace(
+            id=self.agent_id,
+            is_active=True,
+        )
 
         self.telemetry_service = MagicMock()
         self.session_service = MagicMock()
+        self.agent_service = MagicMock()
+
+        self.agent_service.authenticate_agent.return_value = self.agent
+        self.agent_service.has_node_access.return_value = True
 
         self.app = Flask(__name__)
+        self.app.config["TESTING"] = True
+
         self.app.register_blueprint(
             create_telemetry_blueprint(
                 telemetry_service=self.telemetry_service,
                 session_service=self.session_service,
+                agent_service=self.agent_service,
             )
         )
-        self.app.config["TESTING"] = True
+
         self.client = self.app.test_client()
 
         self.payload = {
@@ -49,6 +72,7 @@ class TestTelemetryAPI(unittest.TestCase):
         }
 
         now = datetime.now(timezone.utc)
+
         self.telemetry_service.ingest.return_value = SimpleNamespace(
             id=str(uuid4()),
             message_id=self.payload["message_id"],
@@ -60,54 +84,69 @@ class TestTelemetryAPI(unittest.TestCase):
             received_at=now,
         )
 
-    def _headers(self, key=None):
-        return {
-            "X-Agent-Key": self.agent_key if key is None else key
-        }
+        self.tls_socket = FakeTLSSocket(self.certificate_der)
 
-    def test_01_missing_agent_key(self):
+    def _post_with_certificate(self, payload=None):
+        return self.client.post(
+            "/telemetry",
+            json=self.payload if payload is None else payload,
+            environ_overrides={
+                "werkzeug.socket": self.tls_socket,
+            },
+        )
+
+    # ---------------------------------------------------------
+    # 1. TLS authentication
+    # ---------------------------------------------------------
+
+    def test_01_missing_tls_certificate(self):
         response = self.client.post(
             "/telemetry",
             json=self.payload,
         )
 
         self.assertEqual(response.status_code, 401)
+        self.agent_service.authenticate_agent.assert_not_called()
         self.telemetry_service.ingest.assert_not_called()
 
-    def test_02_invalid_agent_key(self):
-        response = self.client.post(
-            "/telemetry",
-            json=self.payload,
-            headers=self._headers("wrong-key"),
-        )
+    def test_02_unknown_agent_certificate(self):
+        self.agent_service.authenticate_agent.return_value = None
+
+        response = self._post_with_certificate()
 
         self.assertEqual(response.status_code, 401)
+
+        self.agent_service.authenticate_agent.assert_called_once_with(
+            self.fingerprint
+        )
         self.telemetry_service.ingest.assert_not_called()
+
+    # ---------------------------------------------------------
+    # 2. Node access authorization
+    # ---------------------------------------------------------
 
     def test_03_agent_cannot_send_to_unassigned_node(self):
-        payload = {
-            **self.payload,
-            "node_id": str(uuid4()),
-        }
+        self.agent_service.has_node_access.return_value = False
 
-        response = self.client.post(
-            "/telemetry",
-            json=payload,
-            headers=self._headers(),
-        )
+        response = self._post_with_certificate()
 
         self.assertEqual(response.status_code, 403)
+
+        self.agent_service.has_node_access.assert_called_once_with(
+            self.agent_id,
+            self.node_id,
+        )
         self.telemetry_service.ingest.assert_not_called()
+
+    # ---------------------------------------------------------
+    # 3. Payload validation
+    # ---------------------------------------------------------
 
     def test_04_missing_required_field(self):
         payload = dict(self.payload)
         del payload["cpu_percent"]
 
-        response = self.client.post(
-            "/telemetry",
-            json=payload,
-            headers=self._headers(),
-        )
+        response = self._post_with_certificate(payload)
 
         self.assertEqual(response.status_code, 400)
         self.telemetry_service.ingest.assert_not_called()
@@ -118,32 +157,43 @@ class TestTelemetryAPI(unittest.TestCase):
             "cpu_percent": 150,
         }
 
-        response = self.client.post(
-            "/telemetry",
-            json=payload,
-            headers=self._headers(),
-        )
+        response = self._post_with_certificate(payload)
 
         self.assertEqual(response.status_code, 400)
         self.telemetry_service.ingest.assert_not_called()
 
+    # ---------------------------------------------------------
+    # 4. Successful ingestion
+    # ---------------------------------------------------------
+
     def test_06_valid_telemetry(self):
-        response = self.client.post(
-            "/telemetry",
-            json=self.payload,
-            headers=self._headers(),
-        )
+        response = self._post_with_certificate()
 
         self.assertEqual(response.status_code, 200)
+
+        response_data = response.get_json()
+
         self.assertEqual(
-            response.get_json()["message_id"],
+            response_data["message_id"],
             self.payload["message_id"],
         )
         self.assertEqual(
-            response.get_json()["node_id"],
+            response_data["node_id"],
+            self.node_id,
+        )
+
+        self.agent_service.authenticate_agent.assert_called_once_with(
+            self.fingerprint
+        )
+        self.agent_service.has_node_access.assert_called_once_with(
+            self.agent_id,
             self.node_id,
         )
         self.telemetry_service.ingest.assert_called_once()
+
+    # ---------------------------------------------------------
+    # 5. Duplicate/conflicting message
+    # ---------------------------------------------------------
 
     def test_07_conflicting_message_id_returns_409(self):
         self.telemetry_service.ingest.side_effect = (
@@ -152,13 +202,10 @@ class TestTelemetryAPI(unittest.TestCase):
             )
         )
 
-        response = self.client.post(
-            "/telemetry",
-            json=self.payload,
-            headers=self._headers(),
-        )
+        response = self._post_with_certificate()
 
         self.assertEqual(response.status_code, 409)
+        self.telemetry_service.ingest.assert_called_once()
 
 
 if __name__ == "__main__":

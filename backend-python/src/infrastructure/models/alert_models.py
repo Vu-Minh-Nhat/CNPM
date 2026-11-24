@@ -1,3 +1,4 @@
+
 import uuid
 from datetime import datetime
 
@@ -5,9 +6,9 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Index,
     String,
-    ForeignKey,
     func,
     text,
 )
@@ -22,7 +23,14 @@ class AlertRuleModel(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "metric IN ('cpu_percent', 'memory_percent', 'disk_percent')",
+            """
+            metric IN (
+                'cpu_percent',
+                'memory_percent',
+                'disk_percent',
+                'node_offline_seconds'
+            )
+            """,
             name="ck_alert_rules_metric",
         ),
         CheckConstraint(
@@ -30,23 +38,55 @@ class AlertRuleModel(Base):
             name="ck_alert_rules_operator",
         ),
         CheckConstraint(
-            "threshold >= 0 AND threshold <= 100",
+            """
+            (
+                metric IN ('cpu_percent', 'memory_percent', 'disk_percent')
+                AND threshold >= 0
+                AND threshold <= 100
+            )
+            OR
+            (
+                metric = 'node_offline_seconds'
+                AND threshold >= 0
+            )
+            """,
             name="ck_alert_rules_threshold",
         ),
         CheckConstraint(
-            "recovery_operator IS NULL OR recovery_operator IN ('>', '>=', '<', '<=')",
+            """
+            recovery_operator IS NULL
+            OR recovery_operator IN ('>', '>=', '<', '<=')
+            """,
             name="ck_alert_rules_recovery_operator",
         ),
         CheckConstraint(
-            "recovery_threshold IS NULL OR "
-            "(recovery_threshold >= 0 AND recovery_threshold <= 100)",
+            """
+            recovery_threshold IS NULL
+            OR
+            (
+                (
+                    metric IN ('cpu_percent', 'memory_percent', 'disk_percent')
+                    AND recovery_threshold >= 0
+                    AND recovery_threshold <= 100
+                )
+                OR
+                (
+                    metric = 'node_offline_seconds'
+                    AND recovery_threshold >= 0
+                )
+            )
+            """,
             name="ck_alert_rules_recovery_threshold",
         ),
         CheckConstraint(
             "severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')",
             name="ck_alert_rules_severity",
         ),
-        Index("ix_alert_rules_active_metric", "is_active", "metric"),
+        Index(
+            "ix_alert_rules_active_metric",
+            "is_active",
+            "metric",
+        ),
     )
 
     id: Mapped[str] = mapped_column(
@@ -55,15 +95,30 @@ class AlertRuleModel(Base):
         default=lambda: str(uuid.uuid4()),
     )
 
-    metric: Mapped[str] = mapped_column(String(32), nullable=False)
-    operator: Mapped[str] = mapped_column(String(2), nullable=False)
-    threshold: Mapped[float] = mapped_column(nullable=False)
-    severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    metric: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+    )
+
+    operator: Mapped[str] = mapped_column(
+        String(2),
+        nullable=False,
+    )
+
+    threshold: Mapped[float] = mapped_column(
+        nullable=False,
+    )
+
+    severity: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+    )
 
     recovery_operator: Mapped[str | None] = mapped_column(
         String(2),
         nullable=True,
     )
+
     recovery_threshold: Mapped[float | None] = mapped_column(
         nullable=True,
     )
@@ -79,6 +134,7 @@ class AlertRuleModel(Base):
         nullable=False,
         server_default=func.now(),
     )
+
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -91,7 +147,14 @@ class AlertModel(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "metric IN ('cpu_percent', 'memory_percent', 'disk_percent')",
+            """
+            metric IN (
+                'cpu_percent',
+                'memory_percent',
+                'disk_percent',
+                'node_offline_seconds'
+            )
+            """,
             name="ck_alerts_metric",
         ),
         CheckConstraint(
@@ -99,7 +162,22 @@ class AlertModel(Base):
             name="ck_alerts_operator",
         ),
         CheckConstraint(
-            "threshold IS NULL OR (threshold >= 0 AND threshold <= 100)",
+            """
+            threshold IS NULL
+            OR
+            (
+                (
+                    metric IN ('cpu_percent', 'memory_percent', 'disk_percent')
+                    AND threshold >= 0
+                    AND threshold <= 100
+                )
+                OR
+                (
+                    metric = 'node_offline_seconds'
+                    AND threshold >= 0
+                )
+            )
+            """,
             name="ck_alerts_threshold",
         ),
         CheckConstraint(
@@ -116,7 +194,11 @@ class AlertModel(Base):
             "status",
             "triggered_at",
         ),
-        Index("ix_alerts_rule_status", "rule_id", "status"),
+        Index(
+            "ix_alerts_rule_status",
+            "rule_id",
+            "status",
+        ),
         Index(
             "uq_alerts_active_node_rule",
             "node_id",
@@ -145,11 +227,29 @@ class AlertModel(Base):
         nullable=True,
     )
 
-    metric: Mapped[str] = mapped_column(String(32), nullable=False)
-    operator: Mapped[str] = mapped_column(String(2), nullable=False)
-    threshold: Mapped[float | None] = mapped_column(nullable=True)
-    severity: Mapped[str] = mapped_column(String(16), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    metric: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+    )
+
+    operator: Mapped[str] = mapped_column(
+        String(2),
+        nullable=False,
+    )
+
+    threshold: Mapped[float | None] = mapped_column(
+        nullable=True,
+    )
+
+    severity: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+    )
 
     message: Mapped[str] = mapped_column(
         String(1000),

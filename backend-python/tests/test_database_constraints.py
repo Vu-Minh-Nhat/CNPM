@@ -1,3 +1,4 @@
+
 import unittest
 from pathlib import Path
 from uuid import uuid4
@@ -11,6 +12,7 @@ from src.infrastructure.databases.database import Database
 
 
 class TestDatabaseConstraints(unittest.TestCase):
+
     @classmethod
     def setUpClass(cls):
         backend_root = Path(__file__).resolve().parents[1]
@@ -92,7 +94,7 @@ class TestDatabaseConstraints(unittest.TestCase):
             DELETE FROM sites
             WHERE code = 'DEMO-SITE'
             """,
-            "23503",
+            "23001",
         )
 
 

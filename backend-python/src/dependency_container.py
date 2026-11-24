@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 
 from src.services.telemetry_query_service import TelemetryQueryService
@@ -57,6 +58,8 @@ from src.infrastructure.security.bcrypt_password_verifier import (
 from src.infrastructure.security.jwt_token_provider import JwtTokenProvider
 
 from src.services.agent_service import AgentService
+from src.services.alert_detector import AlertDetector
+from src.services.alert_service import AlertService
 from src.services.assets_service import AssetsService
 from src.services.auth_service import AuthService
 from src.services.login_service import LoginService
@@ -92,6 +95,8 @@ class Container:
     servers_service: ServersService
     telemetry_service: TelemetryService
     telemetry_query_service: TelemetryQueryService
+    alert_service: AlertService
+    alert_detector: AlertDetector
     marker_service: MarkerService
     agent_service: AgentService
 
@@ -104,6 +109,10 @@ def build_container(
     offline_after_seconds: int = 90,
     poll_interval_seconds: int = 5,
 ) -> Container:
+    # ---------------------------------------------------------
+    # Repositories
+    # ---------------------------------------------------------
+
     accounts = SqlAlchemyAccountRepository(
         session_factory=database.create_session
     )
@@ -152,6 +161,10 @@ def build_container(
         session_factory=database.create_session
     )
 
+    # ---------------------------------------------------------
+    # Security
+    # ---------------------------------------------------------
+
     tokens = JwtTokenProvider(
         secret=jwt_secret,
         expires_in_seconds=jwt_expires_in_seconds,
@@ -161,6 +174,26 @@ def build_container(
         account_repository=accounts,
         password_verifier=BcryptPasswordVerifier(),
     )
+
+    # ---------------------------------------------------------
+    # Alert services
+    # ---------------------------------------------------------
+
+    alert_service = AlertService(
+        repository=alert_repository,
+    )
+
+    alert_detector = AlertDetector(
+        alert_repository=alert_repository,
+        telemetry_repository=telemetry_repository,
+        server_repository=servers,
+        stale_after_seconds=stale_after_seconds,
+        offline_after_seconds=offline_after_seconds,
+    )
+
+    # ---------------------------------------------------------
+    # Container
+    # ---------------------------------------------------------
 
     return Container(
         accounts=accounts,
@@ -223,6 +256,9 @@ def build_container(
             offline_after_seconds=offline_after_seconds,
             poll_interval_seconds=poll_interval_seconds,
         ),
+
+        alert_service=alert_service,
+        alert_detector=alert_detector,
 
         marker_service=MarkerService(
             repository=marker_repository,

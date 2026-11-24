@@ -1,4 +1,6 @@
+
 from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
@@ -20,16 +22,24 @@ class SqlAlchemyAlertRepository(AlertRepository):
     def __init__(self, session_factory: Callable[[], Session]):
         self._session_factory = session_factory
 
+    # ---------------------------------------------------------
+    # Domain mapping
+    # ---------------------------------------------------------
+
     @staticmethod
     def _to_rule_domain(model: AlertRuleModel) -> AlertRule:
         return AlertRule(
             id=str(model.id),
             metric=model.metric,
             operator=model.operator,
-            threshold=model.threshold,
+            threshold=float(model.threshold),
             severity=model.severity,
             recovery_operator=model.recovery_operator,
-            recovery_threshold=model.recovery_threshold,
+            recovery_threshold=(
+                float(model.recovery_threshold)
+                if model.recovery_threshold is not None
+                else None
+            ),
             is_active=model.is_active,
             created_at=model.created_at,
             updated_at=model.updated_at,
@@ -40,10 +50,18 @@ class SqlAlchemyAlertRepository(AlertRepository):
         return Alert(
             id=str(model.id),
             node_id=str(model.node_id),
-            rule_id=str(model.rule_id) if model.rule_id else None,
+            rule_id=(
+                str(model.rule_id)
+                if model.rule_id is not None
+                else None
+            ),
             metric=model.metric,
             operator=model.operator,
-            threshold=model.threshold,
+            threshold=(
+                float(model.threshold)
+                if model.threshold is not None
+                else None
+            ),
             severity=model.severity,
             status=model.status,
             message=model.message,
@@ -51,6 +69,10 @@ class SqlAlchemyAlertRepository(AlertRepository):
             acknowledged_at=model.acknowledged_at,
             recovered_at=model.recovered_at,
         )
+
+    # ---------------------------------------------------------
+    # Error handling
+    # ---------------------------------------------------------
 
     @staticmethod
     def _handle_write_error(error: DBAPIError) -> NoReturn:
@@ -66,7 +88,13 @@ class SqlAlchemyAlertRepository(AlertRepository):
                 "Node hoặc alert rule không tồn tại."
             ) from error
 
-        if code in {"23502", "23514", "22001", "22P02"}:
+        if code in {
+            "23502",
+            "23514",
+            "22001",
+            "22P02",
+            "22003",
+        }:
             raise ValidationError(
                 "Dữ liệu cảnh báo không hợp lệ."
             ) from error
@@ -79,6 +107,10 @@ class SqlAlchemyAlertRepository(AlertRepository):
             return str(UUID(value))
         except (ValueError, TypeError, AttributeError):
             return None
+
+    # ---------------------------------------------------------
+    # Alert Rule operations
+    # ---------------------------------------------------------
 
     def save_rule(self, rule: AlertRule) -> AlertRule:
         try:
@@ -98,8 +130,58 @@ class SqlAlchemyAlertRepository(AlertRepository):
 
                 session.add(model)
                 session.commit()
+                session.refresh(model)
 
                 return self._to_rule_domain(model)
+
+        except (IntegrityError, DataError) as error:
+            self._handle_write_error(error)
+
+    def update_rule(
+        self,
+        rule_id: str,
+        changes: dict,
+    ) -> AlertRule | None:
+        normalized_id = self._normalize_uuid(rule_id)
+
+        if normalized_id is None:
+            return None
+
+        allowed_fields = {
+            "metric",
+            "operator",
+            "threshold",
+            "severity",
+            "recovery_operator",
+            "recovery_threshold",
+            "is_active",
+        }
+
+        if not changes or not set(changes).issubset(allowed_fields):
+            raise ValidationError(
+                "Các trường cập nhật Alert Rule không hợp lệ."
+            )
+
+        try:
+            with self._session_factory() as session:
+                model = session.get(
+                    AlertRuleModel,
+                    normalized_id,
+                )
+
+                if model is None:
+                    return None
+
+                for field, value in changes.items():
+                    setattr(model, field, value)
+
+                model.updated_at = datetime.now(timezone.utc)
+
+                session.commit()
+                session.refresh(model)
+
+                return self._to_rule_domain(model)
+
         except (IntegrityError, DataError) as error:
             self._handle_write_error(error)
 
@@ -110,19 +192,24 @@ class SqlAlchemyAlertRepository(AlertRepository):
             return None
 
         with self._session_factory() as session:
-            model = session.get(AlertRuleModel, normalized_id)
+            model = session.get(
+                AlertRuleModel,
+                normalized_id,
+            )
 
             if model is None:
                 return None
 
             return self._to_rule_domain(model)
 
-    def list_active_rules(self) -> list[AlertRule]:
+    def list_rules(self) -> list[AlertRule]:
         with self._session_factory() as session:
             statement = (
                 select(AlertRuleModel)
-                .where(AlertRuleModel.is_active.is_(True))
-                .order_by(AlertRuleModel.metric, AlertRuleModel.id)
+                .order_by(
+                    AlertRuleModel.created_at.desc(),
+                    AlertRuleModel.id,
+                )
             )
 
             models = session.execute(statement).scalars().all()
@@ -131,6 +218,43 @@ class SqlAlchemyAlertRepository(AlertRepository):
                 self._to_rule_domain(model)
                 for model in models
             ]
+
+    def list_active_rules(self) -> list[AlertRule]:
+        with self._session_factory() as session:
+            statement = (
+                select(AlertRuleModel)
+                .where(AlertRuleModel.is_active.is_(True))
+                .order_by(
+                    AlertRuleModel.metric,
+                    AlertRuleModel.id,
+                )
+            )
+
+            models = session.execute(statement).scalars().all()
+
+            return [
+                self._to_rule_domain(model)
+                for model in models
+            ]
+
+    def set_rule_active(
+        self,
+        rule_id: str,
+        is_active: bool,
+    ) -> AlertRule | None:
+        if type(is_active) is not bool:
+            raise ValidationError(
+                "is_active phải là boolean."
+            )
+
+        return self.update_rule(
+            rule_id,
+            {"is_active": is_active},
+        )
+
+    # ---------------------------------------------------------
+    # Alert operations
+    # ---------------------------------------------------------
 
     def save(self, alert: Alert) -> Alert:
         try:
@@ -152,10 +276,68 @@ class SqlAlchemyAlertRepository(AlertRepository):
 
                 session.add(model)
                 session.commit()
+                session.refresh(model)
 
                 return self._to_domain(model)
+
         except (IntegrityError, DataError) as error:
             self._handle_write_error(error)
+
+    def update(
+        self,
+        alert_id: str,
+        changes: dict,
+    ) -> Alert | None:
+        normalized_id = self._normalize_uuid(alert_id)
+
+        if normalized_id is None:
+            return None
+
+        allowed_fields = {
+            "status",
+            "message",
+            "acknowledged_at",
+            "recovered_at",
+        }
+
+        if not changes or not set(changes).issubset(allowed_fields):
+            raise ValidationError(
+                "Các trường cập nhật Alert không hợp lệ."
+            )
+
+        try:
+            with self._session_factory() as session:
+                model = session.get(
+                    AlertModel,
+                    normalized_id,
+                )
+
+                if model is None:
+                    return None
+
+                for field, value in changes.items():
+                    setattr(model, field, value)
+
+                session.commit()
+                session.refresh(model)
+
+                return self._to_domain(model)
+
+        except (IntegrityError, DataError) as error:
+            self._handle_write_error(error)
+
+    def recover(
+        self,
+        alert_id: str,
+        recovered_at: datetime,
+    ) -> Alert | None:
+        return self.update(
+            alert_id,
+            {
+                "status": "RECOVERED",
+                "recovered_at": recovered_at,
+            },
+        )
 
     def find_by_id(self, alert_id: str) -> Alert | None:
         normalized_id = self._normalize_uuid(alert_id)
@@ -164,7 +346,50 @@ class SqlAlchemyAlertRepository(AlertRepository):
             return None
 
         with self._session_factory() as session:
-            model = session.get(AlertModel, normalized_id)
+            model = session.get(
+                AlertModel,
+                normalized_id,
+            )
+
+            if model is None:
+                return None
+
+            return self._to_domain(model)
+
+    def find_active_by_node_and_rule(
+        self,
+        node_id: str,
+        rule_id: str,
+    ) -> Alert | None:
+        normalized_node_id = self._normalize_uuid(node_id)
+        normalized_rule_id = self._normalize_uuid(rule_id)
+
+        if (
+            normalized_node_id is None
+            or normalized_rule_id is None
+        ):
+            return None
+
+        with self._session_factory() as session:
+            statement = (
+                select(AlertModel)
+                .where(
+                    AlertModel.node_id == normalized_node_id,
+                    AlertModel.rule_id == normalized_rule_id,
+                    AlertModel.status.in_(
+                        ["FIRING", "ACKNOWLEDGED"]
+                    ),
+                )
+                .order_by(
+                    AlertModel.triggered_at.desc(),
+                    AlertModel.id,
+                )
+                .limit(1)
+            )
+
+            model = session.execute(
+                statement
+            ).scalar_one_or_none()
 
             if model is None:
                 return None
@@ -196,7 +421,9 @@ class SqlAlchemyAlertRepository(AlertRepository):
                 AlertModel.id,
             )
 
-            models = session.execute(statement).scalars().all()
+            models = session.execute(
+                statement
+            ).scalars().all()
 
             return [
                 self._to_domain(model)
@@ -204,10 +431,64 @@ class SqlAlchemyAlertRepository(AlertRepository):
             ]
 
     def list_active_by_node(self, node_id: str) -> list[Alert]:
-        return self.list_by_node(
-            node_id=node_id,
-            status="FIRING",
-        ) + self.list_by_node(
-            node_id=node_id,
-            status="ACKNOWLEDGED",
-        )
+        normalized_id = self._normalize_uuid(node_id)
+
+        if normalized_id is None:
+            return []
+
+        with self._session_factory() as session:
+            statement = (
+                select(AlertModel)
+                .where(
+                    AlertModel.node_id == normalized_id,
+                    AlertModel.status.in_(
+                        ["FIRING", "ACKNOWLEDGED"]
+                    ),
+                )
+                .order_by(
+                    AlertModel.triggered_at.desc(),
+                    AlertModel.id,
+                )
+            )
+
+            models = session.execute(
+                statement
+            ).scalars().all()
+
+            return [
+                self._to_domain(model)
+                for model in models
+            ]
+
+    def list_active_by_rule(
+        self,
+        rule_id: str,
+    ) -> list[Alert]:
+        normalized_id = self._normalize_uuid(rule_id)
+
+        if normalized_id is None:
+            return []
+
+        with self._session_factory() as session:
+            statement = (
+                select(AlertModel)
+                .where(
+                    AlertModel.rule_id == normalized_id,
+                    AlertModel.status.in_(
+                        ["FIRING", "ACKNOWLEDGED"]
+                    ),
+                )
+                .order_by(
+                    AlertModel.triggered_at.desc(),
+                    AlertModel.id,
+                )
+            )
+
+            models = session.execute(
+                statement
+            ).scalars().all()
+
+            return [
+                self._to_domain(model)
+                for model in models
+            ]

@@ -64,13 +64,14 @@ class SqlAlchemyRackRepository(RackRepository):
                 "Mã Rack đã tồn tại trong Room."
             ) from error
 
-        if code == "23503":
+        if code in {"23503", "23001"}:
             if deleting:
                 raise ResourceConflictError(
                     "Không thể xóa Rack còn dữ liệu liên quan."
                 ) from error
 
-            raise ValidationError("Room không tồn tại.") from error
+            if code == "23503":
+                raise ValidationError("Room không tồn tại.") from error
 
         if code in {"23502", "23514", "22001"}:
             raise ValidationError(

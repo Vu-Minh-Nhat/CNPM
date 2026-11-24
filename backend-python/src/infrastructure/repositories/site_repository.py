@@ -35,7 +35,7 @@ class SqlAlchemySiteRepository(SiteRepository):
                 "Mã Site đã tồn tại."
             ) from error
 
-        if code == "23503":
+        if code in {"23503", "23001"}:
             raise ResourceConflictError(
                 "Không thể xóa Site còn dữ liệu liên quan."
             ) from error
