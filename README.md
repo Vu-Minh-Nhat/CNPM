@@ -1,124 +1,392 @@
-# AR-IMMS
+# AR-IMMS – Automated Remote Infrastructure Monitoring and Management System
 
-**AR-Integrated Infrastructure Monitoring and Maintenance System**
+AR-IMMS là hệ thống giám sát và quản lý hạ tầng CNTT. Hệ thống hỗ trợ quản lý tài sản, thu thập telemetry, theo dõi trạng thái thiết bị, quản lý cảnh báo và phân quyền người dùng.
 
-Hệ thống giám sát và bảo trì hạ tầng tích hợp thực tế tăng cường,
-được phát triển và đánh giá trên Mini Data Center Testbed.
+## 1. Kiến trúc hệ thống
 
-## Người sử dụng
+Dự án gồm các thành phần chính:
 
-| Vai trò | Trách nhiệm |
-| --- | --- |
-| System Administrator | Quản trị tài khoản, phân quyền và cấu hình hệ thống |
-| System Operator | Quản lý tài sản, giám sát và điều phối bảo trì |
-| Technician | Tra cứu thiết bị và thực hiện bảo trì tại hiện trường |
+| Thành phần | Công nghệ | Vai trò |
+|---|---|---|
+| Frontend | Next.js, React, TypeScript | Giao diện quản trị và giám sát |
+| Backend | Python, Flask | REST API, xác thực, nghiệp vụ và xử lý dữ liệu |
+| Database | PostgreSQL | Lưu trữ người dùng, tài sản, telemetry và dữ liệu hệ thống |
+| Collector Agent | Python, psutil, requests | Thu thập CPU, RAM, Disk và gửi telemetry |
+| Secure communication | HTTPS, TLS, mTLS | Bảo vệ kết nối giữa Agent và Backend |
 
-Collector Agent thu thập và gửi telemetry từ môi trường thử nghiệm.
+## 2. Yêu cầu môi trường
 
-## Cấu trúc repository
+Cài đặt các phần mềm sau trước khi chạy dự án:
+
+- Git
+- Python và pip
+- Node.js và npm
+- PostgreSQL
+- Visual Studio Code hoặc trình soạn thảo tương đương
+
+Phiên bản đã được kiểm tra trong môi trường phát triển:
+
+- Python 3.14.0
+- Node.js 24.22.1
+- npm 11.19.1
+
+Lưu ý: Cần kiểm tra khả năng tương thích của các thư viện Python trong `requirements.txt` nếu sử dụng phiên bản Python khác.
+
+## 3. Clone source code
+
+```powershell
+git clone https://github.com/Vu-Minh-Nhat/CNPM.git
+cd CNPM
+```
+
+Cấu trúc thư mục chính:
 
 ```text
 CNPM/
-├── backend-python/    # Backend Python Flask
-├── frontend/          # Web Portal Next.js
-├── docs/              # Yêu cầu, thiết kế và báo cáo
-├── Checklist.md
-├── Skills.md
-├── README.md
-└── .gitignore
+├── frontend/
+├── backend-python/
+├── agent/
+├── docs/
+└── README.md
 ```
 
-## Công nghệ
+## 4. Cấu hình PostgreSQL
 
-| Thành phần | Công nghệ |
-| --- | --- |
-| Backend | Python, Flask |
-| Kiến trúc Backend | Clean Architecture |
-| ORM | SQLAlchemy |
-| Migration | Alembic |
-| Database | PostgreSQL |
-| Xác thực và phân quyền | JWT, RBAC |
-| Web Portal | Next.js, React, TypeScript |
-| Tài liệu API | OpenAPI, Swagger UI |
-| Kiểm thử Backend | unittest, Flask test client |
+1. Khởi động PostgreSQL.
+2. Tạo database cho dự án, ví dụ `arimms_python`.
+3. Chuẩn bị tài khoản PostgreSQL có quyền truy cập database.
+4. Cấu hình chuỗi kết nối trong file môi trường Backend.
 
-Phiên bản thư viện Backend được chốt trong
-`backend-python/requirements.txt`.
+Ví dụ:
 
-## Chức năng đã triển khai
+```env
+DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/arimms_python
+```
 
-- Đăng nhập JWT và xác minh tài khoản hiện tại.
-- Phân quyền Administrator, Operator và Technician.
-- Danh sách, tạo tài khoản và đổi vai trò.
-- CRUD Site, Room, Rack và Server.
-- Tra cứu Node cùng Rack, Room, Site và Workload.
-- Migration và seed dữ liệu mẫu bằng Python.
-- Web Portal có đăng nhập, layout và điều hướng theo vai trò.
-- Danh sách, tìm kiếm, lọc và xem chi tiết tài sản trên Web.
+Thay `USERNAME` và `PASSWORD` bằng thông tin PostgreSQL trên máy đang chạy.
 
-## Các phần phát triển tiếp
+Không sử dụng mật khẩu mẫu trong môi trường triển khai thực tế.
 
-- Collector Agent và tiếp nhận telemetry.
-- Cập nhật dữ liệu và dashboard thời gian thực.
-- Cảnh báo, lịch sử telemetry và ticket bảo trì.
-- Mobile AR và nhận diện thiết bị.
-- Audit, báo cáo và triển khai hệ thống.
+## 5. Cài đặt và chạy Backend
 
-## Cài đặt và chạy
+### 5.1. Tạo môi trường Python
 
-1. Cài PostgreSQL và tạo database phát triển trống.
-2. Làm theo [README Backend Python](backend-python/README.md)
-   để tạo môi trường Python, cấu hình, migration và seed.
-3. Khởi động Backend.
-4. Làm theo [README Frontend](frontend/README.md) để chạy Web Portal.
+Mở PowerShell tại thư mục gốc dự án:
 
-Cổng phát triển mặc định:
+```powershell
+cd backend-python
 
-| Thành phần | Địa chỉ |
-| --- | --- |
-| Backend Flask | http://localhost:5000 |
-| Swagger UI | http://localhost:5000/docs/ |
-| OpenAPI JSON | http://localhost:5000/openapi.json |
-| Web Portal | http://localhost:3001 |
+py -m venv .venv
 
-Frontend cấu hình địa chỉ Backend qua `NEXT_PUBLIC_API_URL`.
-Backend cho phép origin Frontend qua `CORS_ORIGINS`.
+.\.venv\Scripts\Activate.ps1
 
-Không chạy migration khởi tạo Python trên database cũ đã có bảng
-được quản lý bằng TypeORM. Xem hướng dẫn Backend để dựng database mới.
+python -m pip install --upgrade pip
 
-## Kết quả kiểm tra
+pip install -r requirements.txt
+```
 
-- 13/13 kiểm thử Backend tự động PASS.
-- Migration và seed hoạt động trên database trống.
-- Chạy lại seed không tạo dữ liệu trùng.
-- Bản clone sạch cài đặt và chạy API thành công.
-- Frontend đăng nhập và hiển thị chi tiết tài sản qua Flask.
+Nếu PowerShell chặn việc kích hoạt môi trường ảo, có thể cho phép script trong phiên hiện tại:
 
-Các kết quả trên được kiểm tra trong môi trường phát triển cục bộ.
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
 
-## Tài liệu
+Sau đó kích hoạt lại:
 
-- [Mục lục tài liệu](docs/README.md)
-- [Backend Python](backend-python/README.md)
-- [Frontend](frontend/README.md)
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
-Báo cáo sprint trước có thể mô tả giai đoạn triển khai NestJS.
-Backend hiện tại sử dụng Python Flask.
+### 5.2. Cấu hình môi trường
 
-## Làm việc nhóm
+Tạo file `.env.migration` từ file mẫu:
 
-- Cập nhật mã nguồn trước khi nhận task.
-- Tạo nhánh riêng theo công việc.
-- Chạy kiểm thử phù hợp và cập nhật tài liệu.
-- Gửi Pull Request để review trước khi merge.
-- Mỗi thành viên nên có database phát triển riêng.
+```powershell
+Copy-Item .env.example .env.migration
+```
 
-Không commit `.env`, `.env.migration`, `.venv`, `node_modules`,
-cache hoặc thông tin bí mật.
+Mở `.env.migration` và cấu hình:
 
-## Giới hạn
+```env
+DATABASE_URL=postgresql://USERNAME:PASSWORD@localhost:5432/arimms_python
 
-Hệ thống được phát triển trên Mini Data Center Testbed.
-Kết quả chạy cục bộ chưa chứng minh khả năng vận hành production
-hoặc triển khai trong Data Center thực tế.
+JWT_SECRET=YOUR_GENERATED_SECRET
+JWT_EXPIRES_IN_SECONDS=86400
+
+CORS_ORIGINS=http://localhost:3001
+
+TELEMETRY_AGENT_KEY=
+TELEMETRY_AGENT_NODE_IDS=
+
+TELEMETRY_STALE_AFTER_SECONDS=30
+TELEMETRY_OFFLINE_AFTER_SECONDS=90
+TELEMETRY_POLL_INTERVAL_SECONDS=5
+```
+
+Có thể tạo JWT secret bằng:
+
+```powershell
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Sao chép giá trị được tạo vào `JWT_SECRET`.
+
+### 5.3. Khởi tạo database
+
+Sau khi cấu hình kết nối PostgreSQL, chạy migration:
+
+```powershell
+python -m alembic upgrade head
+```
+
+Nếu lệnh migration báo lỗi, kiểm tra lại `DATABASE_URL`, trạng thái PostgreSQL và cấu hình Alembic trước khi tiếp tục.
+
+### 5.4. Chạy Backend
+
+Trong thư mục `backend-python`:
+
+```powershell
+.\run.bat
+```
+
+Theo cấu hình runner hiện tại, Backend chạy tại:
+
+- API: `http://127.0.0.1:5002`
+- Health check: `http://127.0.0.1:5002/health`
+- Swagger UI: `http://127.0.0.1:5002/docs/`
+
+Giữ cửa sổ terminal này hoạt động trong suốt quá trình sử dụng.
+
+## 6. Cài đặt và chạy Frontend
+
+Mở một cửa sổ PowerShell mới:
+
+```powershell
+cd CNPM\frontend
+```
+
+Nếu đã ở trong thư mục gốc repository thì chỉ cần:
+
+```powershell
+cd frontend
+```
+
+### 6.1. Cài đặt dependencies
+
+```powershell
+npm ci
+```
+
+### 6.2. Cấu hình API
+
+Tạo file `.env.local`:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Cấu hình URL Backend trong `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5002
+```
+
+URL này tương ứng với Backend chạy bằng `run.bat` ở cổng 5002.
+
+Đảm bảo Backend có cấu hình CORS:
+
+```env
+CORS_ORIGINS=http://localhost:3001
+```
+
+### 6.3. Chạy Frontend
+
+```powershell
+npm run dev -- --port 3001
+```
+
+Truy cập:
+
+**http://localhost:3001**
+
+### 6.4. Kiểm tra và build Frontend
+
+Kiểm tra lint:
+
+```powershell
+npm run lint
+```
+
+Build production:
+
+```powershell
+npm run build
+```
+
+Chạy production server:
+
+```powershell
+npm run start -- --port 3001
+```
+
+## 7. Cài đặt Collector Agent
+
+Collector Agent thu thập thông tin tài nguyên hệ thống:
+
+- CPU usage
+- RAM usage
+- Disk usage
+
+Agent gửi dữ liệu telemetry đến Backend theo chu kỳ cấu hình.
+
+### 7.1. Tạo môi trường Python
+
+Mở PowerShell mới:
+
+```powershell
+cd agent
+
+py -m venv .venv
+
+.\.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+
+pip install -r requirements.txt
+```
+
+### 7.2. Cấu hình Agent
+
+Tạo file `.env` từ file mẫu:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Cấu hình cơ bản:
+
+```env
+BACKEND_URL=https://localhost:5002
+TELEMETRY_ENDPOINT=/telemetry
+
+NODE_ID=YOUR_NODE_ID
+
+SEND_INTERVAL_SECONDS=5
+REQUEST_TIMEOUT_SECONDS=5
+MAX_RETRIES=3
+RETRY_DELAY_SECONDS=2
+```
+
+Agent hiện sử dụng HTTPS và yêu cầu mutual TLS. Các đường dẫn mặc định trong `agent/config.py` là:
+
+```text
+agent/certs-v2/agent.crt
+agent/certs-v2/agent.key
+agent/certs-v2/ca.crt
+```
+
+Cần có đủ ba file chứng chỉ tương ứng trước khi chạy Agent.
+
+### 7.3. Chạy Agent
+
+Sau khi cấu hình đầy đủ URL, Node ID và chứng chỉ:
+
+```powershell
+.\run.bat
+```
+
+Theo dõi log để kiểm tra trạng thái thu thập và gửi telemetry.
+
+**Lưu ý về mTLS:** Không sử dụng `http://localhost:5002` cho Agent. Backend mTLS phải được chạy bằng TLS runner và phải có server certificate, server private key cùng CA certificate hợp lệ. Backend mTLS hiện sử dụng `ssl.CERT_REQUIRED`, do đó Agent phải trình client certificate được CA tin cậy ký.
+
+Script tạo chứng chỉ hiện có sự khác biệt về thư mục đầu ra so với các đường dẫn `certs-v2` đang được cấu hình. Cần thống nhất hai đường dẫn này trước khi dùng script tạo chứng chỉ. Không ghi đè các chứng chỉ hiện có.
+
+Quy trình đăng ký Agent và cấp quyền Node cần được hoàn thiện/xác minh trước khi triển khai thực tế.
+
+## 8. Thứ tự khởi động hệ thống
+
+Khi chạy toàn bộ hệ thống trong môi trường phát triển:
+
+1. Khởi động PostgreSQL.
+2. Khởi động Backend.
+3. Khởi động Frontend.
+4. Cấu hình và khởi động Collector Agent sau khi Backend mTLS và chứng chỉ đã sẵn sàng.
+
+Mỗi thành phần nên chạy trong một cửa sổ terminal riêng để thuận tiện theo dõi log và xử lý lỗi.
+
+## 9. Kiểm tra hoạt động
+
+### Backend
+
+Mở:
+
+```text
+http://127.0.0.1:5002/health
+```
+
+Kiểm tra Swagger:
+
+```text
+http://127.0.0.1:5002/docs/
+```
+
+### Frontend
+
+Mở:
+
+```text
+http://localhost:3001
+```
+
+Kiểm tra đăng nhập, điều hướng và các chức năng được cấp quyền.
+
+### Agent
+
+Kiểm tra log để xác nhận:
+
+- Agent khởi động thành công.
+- Cấu hình Node ID hợp lệ.
+- Các file chứng chỉ tồn tại.
+- Thu thập được CPU, RAM và Disk.
+- Kết nối HTTPS thành công.
+- Backend chấp nhận telemetry.
+
+## 10. Xử lý lỗi thường gặp
+
+| Lỗi | Nguyên nhân có thể | Cách kiểm tra |
+|---|---|---|
+| `DATABASE_URL is not configured` | Thiếu cấu hình database | Kiểm tra file `.env` và `.env.migration` |
+| PostgreSQL connection refused | PostgreSQL chưa chạy hoặc sai cổng | Kiểm tra service và cổng PostgreSQL |
+| Frontend không kết nối được API | Sai `NEXT_PUBLIC_API_URL` hoặc Backend chưa chạy | Kiểm tra URL và cổng Backend |
+| CORS error | Origin Frontend chưa được cho phép | Kiểm tra `CORS_ORIGINS` |
+| `EADDRINUSE` | Cổng đang được tiến trình khác sử dụng | Kiểm tra tiến trình chiếm cổng |
+| `WRONG_VERSION_NUMBER` | Gửi HTTPS đến server HTTP hoặc ngược lại | Kiểm tra giao thức của Backend |
+| `CERTIFICATE_VERIFY_FAILED` | CA hoặc server certificate không hợp lệ | Kiểm tra CA và chứng chỉ |
+| Client certificate required | Agent chưa gửi client certificate hợp lệ | Kiểm tra `agent.crt`, `agent.key` và CA |
+| Agent báo thiếu `NODE_ID` | Chưa cấu hình Node ID | Kiểm tra file `.env` của Agent |
+
+## 11. Bảo mật và lưu ý Git
+
+Không commit các thông tin nhạy cảm sau:
+
+- File `.env`, `.env.local`, `.env.migration`.
+- Database password.
+- JWT secret và API key.
+- Private key (`*.key`).
+- Certificate và thư mục chứng chỉ phát triển.
+- File backup database.
+
+Các file môi trường mẫu `.env.example` có thể được commit nếu không chứa thông tin bí mật.
+
+Trước khi push code lên GitHub, kiểm tra:
+
+```powershell
+git status --short
+git diff --check
+```
+
+Không sử dụng `git add .` nếu repository đang có những thay đổi không thuộc phạm vi công việc cần commit.
+
+## 12. Repository
+
+GitHub: https://github.com/Vu-Minh-Nhat/CNPM
