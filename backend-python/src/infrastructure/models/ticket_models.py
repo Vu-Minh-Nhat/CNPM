@@ -6,10 +6,12 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
+    Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.infrastructure.databases.base import Base
@@ -23,6 +25,14 @@ class TicketModel(Base):
             "status IN ('NEW', 'ASSIGNED', 'IN_PROGRESS', "
             "'PENDING_APPROVAL', 'CLOSED')",
             name="ck_tickets_status",
+        ),
+        CheckConstraint(
+            "progress >= 0 AND progress <= 100",
+            name="ck_tickets_progress",
+        ),
+        CheckConstraint(
+            "version >= 1",
+            name="ck_tickets_version",
         ),
         Index(
             "ix_tickets_node_status_time",
@@ -71,6 +81,33 @@ class TicketModel(Base):
         String(32),
         nullable=False,
         server_default="NEW",
+    )
+
+    progress: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="0",
+    )
+
+    work_notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    evidence: Mapped[str | None] = mapped_column(
+        String(4000),
+        nullable=True,
+    )
+
+    result: Mapped[str | None] = mapped_column(
+        String(4000),
+        nullable=True,
+    )
+
+    version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="1",
     )
 
     title: Mapped[str] = mapped_column(
@@ -145,6 +182,11 @@ class TicketHistoryModel(Base):
 
     note: Mapped[str | None] = mapped_column(
         String(4000),
+        nullable=True,
+    )
+
+    details: Mapped[dict | None] = mapped_column(
+        JSONB,
         nullable=True,
     )
 

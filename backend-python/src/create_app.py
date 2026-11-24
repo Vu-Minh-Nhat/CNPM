@@ -20,6 +20,9 @@ from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.telemetry_queries_controller import (
     create_telemetry_queries_blueprint,
 )
+from src.api.controllers.tickets_controller import (
+    create_tickets_blueprint,
+)
 from src.api.controllers.users_controller import create_users_blueprint
 from src.api.docs import register_api_docs
 from src.api.error_handlers import register_error_handlers
@@ -168,6 +171,13 @@ def create_app() -> Flask:
     app.register_blueprint(
         create_alerts_blueprint(
             alert_service=container.alert_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_tickets_blueprint(
+            ticket_service=container.ticket_service,
             session_service=container.session_service,
         )
     )

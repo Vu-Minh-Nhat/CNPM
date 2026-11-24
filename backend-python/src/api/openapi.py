@@ -452,6 +452,124 @@ def build_openapi():
     })
 
     # ------------------------------------------------------------------
+    # Ticket schemas
+    # ------------------------------------------------------------------
+
+    schemas["Ticket"] = object_schema({
+        "id": uuid,
+        "node_id": uuid,
+        "alert_id": {
+            **uuid,
+            "nullable": True,
+        },
+        "created_by": uuid,
+        "assigned_to": {
+            **uuid,
+            "nullable": True,
+        },
+        "status": {
+            "type": "string",
+            "enum": ["NEW", "ASSIGNED", "IN_PROGRESS", "PENDING_APPROVAL", "CLOSED"],
+        },
+        "title": {"type": "string", "maxLength": 200},
+        "description": {"type": "string", "maxLength": 4000},
+        "progress": {"type": "integer", "minimum": 0, "maximum": 100},
+        "work_notes": {
+            "type": "string",
+            "maxLength": 4000,
+            "nullable": True,
+        },
+        "evidence": {
+            "type": "string",
+            "maxLength": 4000,
+            "nullable": True,
+            "description": "Mô tả hoặc tham chiếu bằng chứng dạng văn bản; API không nhận tệp tải lên.",
+        },
+        "result": {
+            "type": "string",
+            "maxLength": 4000,
+            "nullable": True,
+        },
+        "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Phiên bản cần gửi lại khi cập nhật để phát hiện xung đột.",
+        },
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+    })
+
+    schemas["TicketHistory"] = object_schema({
+        "id": uuid,
+        "ticket_id": uuid,
+        "actor_id": uuid,
+        "action": {"type": "string"},
+        "from_status": {
+            "type": "string",
+            "nullable": True,
+        },
+        "to_status": {
+            "type": "string",
+            "nullable": True,
+        },
+        "note": {
+            "type": "string",
+            "nullable": True,
+        },
+        "details": {
+            "type": "object",
+            "nullable": True,
+            "additionalProperties": True,
+        },
+        "created_at": {"type": "string", "format": "date-time"},
+    })
+
+    schemas["CreateTicket"] = input_schema({
+        "node_id": uuid,
+        "alert_id": {
+            **uuid,
+            "nullable": True,
+        },
+        "title": {"type": "string", "minLength": 1, "maxLength": 200},
+        "description": {"type": "string", "minLength": 1, "maxLength": 4000},
+    }, ["node_id", "title", "description"])
+
+    schemas["TicketVersionInput"] = input_schema({
+        "version": {"type": "integer", "minimum": 1},
+        "note": {"type": "string", "maxLength": 4000},
+    }, ["version"])
+
+    schemas["AssignTicket"] = input_schema({
+        "assigned_to": uuid,
+        "version": {"type": "integer", "minimum": 1},
+        "note": {"type": "string", "maxLength": 4000},
+    }, ["assigned_to", "version"])
+
+    schemas["UpdateTicketWork"] = input_schema({
+        "version": {"type": "integer", "minimum": 1},
+        "progress": {"type": "integer", "minimum": 0, "maximum": 100},
+        "work_notes": {"type": "string", "maxLength": 4000},
+        "evidence": {"type": "string", "maxLength": 4000},
+    }, ["version"])
+
+    schemas["SubmitTicket"] = input_schema({
+        "version": {"type": "integer", "minimum": 1},
+        "result": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "evidence": {"type": "string", "maxLength": 4000},
+        "note": {"type": "string", "maxLength": 4000},
+    }, ["version", "result"])
+
+    schemas["ReturnTicket"] = input_schema({
+        "version": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 4000},
+    }, ["version", "reason"])
+
+    schemas["TicketDetail"] = object_schema({
+        **schemas["Ticket"]["properties"],
+        "history": array("TicketHistory"),
+    })
+
+    # ------------------------------------------------------------------
     # Marker schemas - Task 58
     # ------------------------------------------------------------------
 
@@ -864,6 +982,142 @@ def build_openapi():
                 "Alert đã RECOVERED không thể được xác nhận."
             ),
         },
+    }
+
+    # ------------------------------------------------------------------
+    # Maintenance Ticket API
+    # ------------------------------------------------------------------
+
+    ticket_id_parameter = {
+        "name": "ticket_id",
+        "in": "path",
+        "required": True,
+        "description": "UUID của ticket.",
+        "schema": uuid,
+    }
+
+    paths["/tickets"] = {
+        "get": {
+            **operation(
+                "Tickets",
+                "Tra cứu ticket — Operator hoặc Technician được giao",
+                array("Ticket"),
+                errors=(400, 401, 403, 503),
+            ),
+            "parameters": [{
+                "name": "status",
+                "in": "query",
+                "required": False,
+                "schema": {
+                    "type": "string",
+                    "enum": [
+                        "NEW",
+                        "ASSIGNED",
+                        "IN_PROGRESS",
+                        "PENDING_APPROVAL",
+                        "CLOSED",
+                    ],
+                },
+            }],
+            "description": (
+                "Operator tra cứu ticket trong phạm vi vận hành; "
+                "Technician chỉ nhận ticket được phân công cho tài khoản hiện tại."
+            ),
+        },
+        "post": operation(
+            "Tickets",
+            "Tạo ticket — Operator",
+            ref("Ticket"),
+            status=201,
+            body="CreateTicket",
+            errors=(400, 401, 403, 404, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}"] = {
+        "parameters": [ticket_id_parameter],
+        "get": operation(
+            "Tickets",
+            "Chi tiết ticket và lịch sử — Operator hoặc Technician được giao",
+            ref("TicketDetail"),
+            errors=(401, 403, 404, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/history"] = {
+        "parameters": [ticket_id_parameter],
+        "get": operation(
+            "Tickets",
+            "Lịch sử ticket — Operator hoặc Technician được giao",
+            array("TicketHistory"),
+            errors=(401, 403, 404, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/assign"] = {
+        "parameters": [ticket_id_parameter],
+        "post": operation(
+            "Tickets",
+            "Phân công Technician đang hoạt động — Operator",
+            ref("Ticket"),
+            body="AssignTicket",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/start"] = {
+        "parameters": [ticket_id_parameter],
+        "post": operation(
+            "Tickets",
+            "Bắt đầu xử lý — Technician được phân công",
+            ref("Ticket"),
+            body="TicketVersionInput",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/work"] = {
+        "parameters": [ticket_id_parameter],
+        "patch": operation(
+            "Tickets",
+            "Cập nhật tiến độ, ghi chú hoặc bằng chứng văn bản — Technician được phân công",
+            ref("Ticket"),
+            body="UpdateTicketWork",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/submit"] = {
+        "parameters": [ticket_id_parameter],
+        "post": operation(
+            "Tickets",
+            "Gửi kết quả chờ duyệt — Technician được phân công",
+            ref("Ticket"),
+            body="SubmitTicket",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/approve-close"] = {
+        "parameters": [ticket_id_parameter],
+        "post": operation(
+            "Tickets",
+            "Duyệt đóng ticket — Operator",
+            ref("Ticket"),
+            body="TicketVersionInput",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
+    }
+
+    paths["/tickets/{ticket_id}/return"] = {
+        "parameters": [ticket_id_parameter],
+        "post": operation(
+            "Tickets",
+            "Trả lại xử lý kèm lý do — Operator",
+            ref("Ticket"),
+            body="ReturnTicket",
+            errors=(400, 401, 403, 404, 409, 503),
+        ),
     }
 
     # ------------------------------------------------------------------

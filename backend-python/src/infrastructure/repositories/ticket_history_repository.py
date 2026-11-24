@@ -29,6 +29,7 @@ class SqlAlchemyTicketHistoryRepository(TicketHistoryRepository):
             to_status=model.to_status,
             note=model.note,
             created_at=model.created_at,
+            details=model.details,
         )
 
     @staticmethod
@@ -66,6 +67,7 @@ class SqlAlchemyTicketHistoryRepository(TicketHistoryRepository):
                     to_status=history.to_status,
                     note=history.note,
                     created_at=history.created_at,
+                    details=history.details,
                 )
 
                 session.add(model)

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -12,3 +13,4 @@ class TicketHistory:
     to_status: str | None
     note: str | None
     created_at: datetime
+    details: dict[str, Any] | None = None

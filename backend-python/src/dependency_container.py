@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 from src.services.telemetry_query_service import TelemetryQueryService
+from src.services.ticket_service import TicketService
 
 from src.domain.repositories.account_repository import AccountRepository
 from src.domain.repositories.agent_repository import AgentRepository
@@ -97,6 +98,7 @@ class Container:
     telemetry_query_service: TelemetryQueryService
     alert_service: AlertService
     alert_detector: AlertDetector
+    ticket_service: TicketService
     marker_service: MarkerService
     agent_service: AgentService
 
@@ -191,6 +193,13 @@ def build_container(
         offline_after_seconds=offline_after_seconds,
     )
 
+    ticket_service = TicketService(
+        tickets=ticket_repository,
+        history=ticket_history_repository,
+        accounts=accounts,
+        alerts=alert_repository,
+    )
+
     # ---------------------------------------------------------
     # Container
     # ---------------------------------------------------------
@@ -259,6 +268,7 @@ def build_container(
 
         alert_service=alert_service,
         alert_detector=alert_detector,
+        ticket_service=ticket_service,
 
         marker_service=MarkerService(
             repository=marker_repository,

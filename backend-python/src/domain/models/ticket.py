@@ -14,3 +14,8 @@ class Ticket:
     description: str
     created_at: datetime
     updated_at: datetime
+    progress: int = 0
+    work_notes: str | None = None
+    evidence: str | None = None
+    result: str | None = None
+    version: int = 1

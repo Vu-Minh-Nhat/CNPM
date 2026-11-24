@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
@@ -11,8 +12,9 @@ from src.domain.exceptions import (
     ValidationError,
 )
 from src.domain.models.ticket import Ticket
+from src.domain.models.ticket_history import TicketHistory
 from src.domain.repositories.ticket_repository import TicketRepository
-from src.infrastructure.models import TicketModel
+from src.infrastructure.models import TicketHistoryModel, TicketModel
 
 
 class SqlAlchemyTicketRepository(TicketRepository):
@@ -32,6 +34,25 @@ class SqlAlchemyTicketRepository(TicketRepository):
             description=model.description,
             created_at=model.created_at,
             updated_at=model.updated_at,
+            progress=model.progress,
+            work_notes=model.work_notes,
+            evidence=model.evidence,
+            result=model.result,
+            version=model.version,
+        )
+
+    @staticmethod
+    def _history_model(history: TicketHistory) -> TicketHistoryModel:
+        return TicketHistoryModel(
+            id=history.id,
+            ticket_id=history.ticket_id,
+            actor_id=history.actor_id,
+            action=history.action,
+            from_status=history.from_status,
+            to_status=history.to_status,
+            note=history.note,
+            created_at=history.created_at,
+            details=history.details,
         )
 
     @staticmethod
@@ -62,7 +83,11 @@ class SqlAlchemyTicketRepository(TicketRepository):
         except (ValueError, TypeError, AttributeError):
             return None
 
-    def save(self, ticket: Ticket) -> Ticket:
+    def create_with_history(
+        self,
+        ticket: Ticket,
+        history: TicketHistory,
+    ) -> Ticket:
         try:
             with self._session_factory() as session:
                 model = TicketModel(
@@ -76,10 +101,71 @@ class SqlAlchemyTicketRepository(TicketRepository):
                     description=ticket.description,
                     created_at=ticket.created_at,
                     updated_at=ticket.updated_at,
+                    progress=ticket.progress,
+                    work_notes=ticket.work_notes,
+                    evidence=ticket.evidence,
+                    result=ticket.result,
+                    version=ticket.version,
                 )
 
-                session.add(model)
+                session.add_all((model, self._history_model(history)))
                 session.commit()
+
+                return self._to_domain(model)
+        except (IntegrityError, DataError) as error:
+            self._handle_write_error(error)
+
+    def update_with_history(
+        self,
+        ticket_id: str,
+        expected_version: int,
+        changes: dict,
+        history: TicketHistory,
+    ) -> Ticket | None:
+        normalized_id = self._normalize_uuid(ticket_id)
+
+        if normalized_id is None:
+            return None
+
+        try:
+            with self._session_factory() as session:
+                statement = (
+                    select(TicketModel)
+                    .where(TicketModel.id == normalized_id)
+                    .with_for_update()
+                )
+                model = session.execute(
+                    statement
+                ).scalar_one_or_none()
+
+                if model is None:
+                    return None
+
+                if model.version != expected_version:
+                    raise ResourceConflictError(
+                        "Ticket đã được cập nhật bởi người khác. "
+                        "Tải lại dữ liệu trước khi thử lại."
+                    )
+
+                for field, value in changes.items():
+                    if field not in {
+                        "assigned_to",
+                        "status",
+                        "progress",
+                        "work_notes",
+                        "evidence",
+                        "result",
+                    }:
+                        raise ValueError(
+                            f"Unsupported ticket field: {field}"
+                        )
+                    setattr(model, field, value)
+
+                model.updated_at = datetime.now(timezone.utc)
+                model.version += 1
+                session.add(self._history_model(history))
+                session.commit()
+                session.refresh(model)
 
                 return self._to_domain(model)
         except (IntegrityError, DataError) as error:
@@ -179,6 +265,26 @@ class SqlAlchemyTicketRepository(TicketRepository):
                 )
             )
 
+            models = session.execute(statement).scalars().all()
+
+            return [
+                self._to_domain(model)
+                for model in models
+            ]
+
+    def list_all(self, status: str | None = None) -> list[Ticket]:
+        with self._session_factory() as session:
+            statement = select(TicketModel)
+
+            if status is not None:
+                statement = statement.where(
+                    TicketModel.status == status
+                )
+
+            statement = statement.order_by(
+                TicketModel.created_at.desc(),
+                TicketModel.id,
+            )
             models = session.execute(statement).scalars().all()
 
             return [

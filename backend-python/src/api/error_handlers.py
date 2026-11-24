@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 
 from src.domain.exceptions import (
+    ForbiddenError,
     ResourceConflictError,
     ResourceNotFoundError,
     ValidationError,
@@ -8,6 +9,14 @@ from src.domain.exceptions import (
 
 
 def register_error_handlers(app: Flask) -> None:
+    @app.errorhandler(ForbiddenError)
+    def handle_forbidden(error):
+        return jsonify({
+            "message": str(error),
+            "error": "Forbidden",
+            "statusCode": 403,
+        }), 403
+
     @app.errorhandler(ValidationError)
     def handle_validation(error):
         return jsonify({
