@@ -33,7 +33,9 @@ agent/
 Mở Terminal tại thư mục `agent`:
 
 ```powershell
-python -m pip install -r requirements.txt
+python -m venv .venv
+
+& ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
 Kiểm tra dependencies:
