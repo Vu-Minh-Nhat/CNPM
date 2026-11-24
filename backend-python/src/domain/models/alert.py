@@ -1,3 +1,4 @@
+
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -16,3 +17,5 @@ class Alert:
     triggered_at: datetime
     acknowledged_at: datetime | None
     recovered_at: datetime | None
+    triggered_value: float | None = None
+    acknowledged_by: str | None = None

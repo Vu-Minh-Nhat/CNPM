@@ -1,3 +1,4 @@
+
 import os
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from src.api.controllers.agents_controller import create_agents_blueprint
+from src.api.controllers.alerts_controller import create_alerts_blueprint
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
@@ -99,7 +101,6 @@ def create_app() -> Flask:
         )
     )
 
-    # Agent Registry: chĂ¡Â»â€° Administrator Ă„â€˜Ă†Â°Ă¡Â»Â£c quĂ¡ÂºÂ£n lÄ‚Â½ Agent.
     app.register_blueprint(
         create_agents_blueprint(
             agent_service=container.agent_service,
@@ -160,6 +161,13 @@ def create_app() -> Flask:
     app.register_blueprint(
         create_telemetry_queries_blueprint(
             query_service=container.telemetry_query_service,
+            session_service=container.session_service,
+        )
+    )
+
+    app.register_blueprint(
+        create_alerts_blueprint(
+            alert_service=container.alert_service,
             session_service=container.session_service,
         )
     )

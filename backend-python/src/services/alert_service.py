@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from src.domain.exceptions import (
+    ResourceConflictError,
     ResourceNotFoundError,
     ValidationError,
 )
@@ -33,11 +34,21 @@ class AlertService:
         "CRITICAL",
     }
 
+    SUPPORTED_STATUSES = {
+        "FIRING",
+        "ACKNOWLEDGED",
+        "RECOVERED",
+    }
+
     PERCENT_METRICS = {
         "cpu_percent",
         "memory_percent",
         "disk_percent",
     }
+
+    DEFAULT_PAGE = 1
+    DEFAULT_PAGE_SIZE = 20
+    MAX_PAGE_SIZE = 100
 
     def __init__(self, repository: AlertRepository):
         self._repository = repository
@@ -191,6 +202,29 @@ class AlertService:
             "recovery_threshold": recovery_threshold,
         }
 
+    @staticmethod
+    def _validate_pagination(
+        page: int,
+        page_size: int,
+    ) -> None:
+        if (
+            isinstance(page, bool)
+            or not isinstance(page, int)
+            or page < 1
+        ):
+            raise ValidationError(
+                "page phải là số nguyên lớn hơn hoặc bằng 1."
+            )
+
+        if (
+            isinstance(page_size, bool)
+            or not isinstance(page_size, int)
+            or not 1 <= page_size <= 100
+        ):
+            raise ValidationError(
+                "page_size phải nằm trong khoảng từ 1 đến 100."
+            )
+
     # ---------------------------------------------------------
     # Rule operations
     # ---------------------------------------------------------
@@ -292,7 +326,6 @@ class AlertService:
         return self._rule_response(rule)
 
     def disable_rule(self, rule_id: str) -> dict:
-        # Bước 1: Kiểm tra Rule tồn tại.
         current = self._repository.find_rule_by_id(rule_id)
 
         if current is None:
@@ -300,7 +333,6 @@ class AlertService:
                 "Không tìm thấy Alert Rule."
             )
 
-        # Bước 2: Vô hiệu hóa Rule.
         rule = self._repository.set_rule_active(
             rule_id,
             False,
@@ -311,12 +343,10 @@ class AlertService:
                 "Không tìm thấy Alert Rule."
             )
 
-        # Bước 3: Lấy tất cả Alert đang hoạt động thuộc Rule.
         active_alerts = self._repository.list_active_by_rule(
             rule_id
         )
 
-        # Bước 4: Phục hồi các Alert khi Rule bị vô hiệu hóa.
         recovered_at = datetime.now(timezone.utc)
 
         for alert in active_alerts:
@@ -341,18 +371,57 @@ class AlertService:
 
         return self._alert_response(alert)
 
+    def list_alerts(
+        self,
+        node_id: str | None = None,
+        metric: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        page: int = DEFAULT_PAGE,
+        page_size: int = DEFAULT_PAGE_SIZE,
+    ) -> dict:
+        """
+        Tra cứu Alert có lọc và phân trang.
+
+        Thời gian lọc dựa trên triggered_at.
+        """
+
+        self._validate_pagination(page, page_size)
+
+        alerts, total = self._repository.query_alerts(
+            node_id=node_id,
+            metric=metric,
+            severity=severity,
+            status=status,
+            start_time=start_time,
+            end_time=end_time,
+            page=page,
+            page_size=page_size,
+        )
+
+        total_pages = math.ceil(total / page_size)
+
+        return {
+            "items": [
+                self._alert_response(alert)
+                for alert in alerts
+            ],
+            "pagination": {
+                "page": page,
+                "page_size": page_size,
+                "total": total,
+                "total_pages": total_pages,
+            },
+        }
+
     def list_node_alerts(
         self,
         node_id: str,
         status: str | None = None,
     ) -> list[dict]:
-        allowed_statuses = {
-            "FIRING",
-            "ACKNOWLEDGED",
-            "RECOVERED",
-        }
-
-        if status is not None and status not in allowed_statuses:
+        if status is not None and status not in self.SUPPORTED_STATUSES:
             raise ValidationError(
                 "Trạng thái Alert không hợp lệ."
             )
@@ -379,6 +448,41 @@ class AlertService:
             self._alert_response(alert)
             for alert in alerts
         ]
+
+    # ---------------------------------------------------------
+    # Alert acknowledgement
+    # ---------------------------------------------------------
+
+    def acknowledge_alert(
+        self,
+        alert_id: str,
+        actor_id: str,
+    ) -> dict:
+        """
+        Xác nhận một Alert đang FIRING.
+
+        Quyền Administrator/Operator được kiểm tra tại Controller.
+        Repository chịu trách nhiệm khóa bản ghi, cập nhật trạng thái
+        và ghi lịch sử trong cùng transaction.
+        """
+
+        if not isinstance(actor_id, str) or not actor_id.strip():
+            raise ValidationError(
+                "Không xác định được tài khoản xác nhận Alert."
+            )
+
+        acknowledged = self._repository.acknowledge(
+            alert_id=alert_id,
+            actor_id=actor_id,
+            acknowledged_at=datetime.now(timezone.utc),
+        )
+
+        if acknowledged is None:
+            raise ResourceNotFoundError(
+                "Không tìm thấy Alert."
+            )
+
+        return self._alert_response(acknowledged)
 
     # ---------------------------------------------------------
     # Response mapping
@@ -408,10 +512,12 @@ class AlertService:
             "metric": alert.metric,
             "operator": alert.operator,
             "threshold": alert.threshold,
+            "triggered_value": alert.triggered_value,
             "severity": alert.severity,
             "status": alert.status,
             "message": alert.message,
             "triggered_at": alert.triggered_at.isoformat(),
+            "acknowledged_by": alert.acknowledged_by,
             "acknowledged_at": (
                 alert.acknowledged_at.isoformat()
                 if alert.acknowledged_at is not None

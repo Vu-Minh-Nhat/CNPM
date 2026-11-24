@@ -2,9 +2,9 @@
 from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import NoReturn
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,10 +15,15 @@ from src.domain.exceptions import (
 from src.domain.models.alert import Alert
 from src.domain.models.alert_rule import AlertRule
 from src.domain.repositories.alert_repository import AlertRepository
-from src.infrastructure.models import AlertModel, AlertRuleModel
+from src.infrastructure.models import (
+    AlertHistoryModel,
+    AlertModel,
+    AlertRuleModel,
+)
 
 
 class SqlAlchemyAlertRepository(AlertRepository):
+
     def __init__(self, session_factory: Callable[[], Session]):
         self._session_factory = session_factory
 
@@ -68,6 +73,16 @@ class SqlAlchemyAlertRepository(AlertRepository):
             triggered_at=model.triggered_at,
             acknowledged_at=model.acknowledged_at,
             recovered_at=model.recovered_at,
+            triggered_value=(
+                float(model.triggered_value)
+                if model.triggered_value is not None
+                else None
+            ),
+            acknowledged_by=(
+                str(model.acknowledged_by)
+                if model.acknowledged_by is not None
+                else None
+            ),
         )
 
     # ---------------------------------------------------------
@@ -85,7 +100,7 @@ class SqlAlchemyAlertRepository(AlertRepository):
 
         if code == "23503":
             raise ValidationError(
-                "Node hoặc alert rule không tồn tại."
+                "Node, tài khoản hoặc alert rule không tồn tại."
             ) from error
 
         if code in {
@@ -266,10 +281,12 @@ class SqlAlchemyAlertRepository(AlertRepository):
                     metric=alert.metric,
                     operator=alert.operator,
                     threshold=alert.threshold,
+                    triggered_value=alert.triggered_value,
                     severity=alert.severity,
                     status=alert.status,
                     message=alert.message,
                     triggered_at=alert.triggered_at,
+                    acknowledged_by=alert.acknowledged_by,
                     acknowledged_at=alert.acknowledged_at,
                     recovered_at=alert.recovered_at,
                 )
@@ -296,6 +313,7 @@ class SqlAlchemyAlertRepository(AlertRepository):
         allowed_fields = {
             "status",
             "message",
+            "acknowledged_by",
             "acknowledged_at",
             "recovered_at",
         }
@@ -492,3 +510,269 @@ class SqlAlchemyAlertRepository(AlertRepository):
                 self._to_domain(model)
                 for model in models
             ]
+
+    # ---------------------------------------------------------
+    # Alert Query API
+    # ---------------------------------------------------------
+
+    def query_alerts(
+        self,
+        node_id: str | None = None,
+        metric: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[Alert], int]:
+
+        if (
+            isinstance(page, bool)
+            or not isinstance(page, int)
+            or page < 1
+        ):
+            raise ValidationError(
+                "page phải là số nguyên lớn hơn hoặc bằng 1."
+            )
+
+        if (
+            isinstance(page_size, bool)
+            or not isinstance(page_size, int)
+            or not 1 <= page_size <= 100
+        ):
+            raise ValidationError(
+                "page_size phải nằm trong khoảng từ 1 đến 100."
+            )
+
+        normalized_node_id = None
+
+        if node_id is not None:
+            normalized_node_id = self._normalize_uuid(node_id)
+
+            if normalized_node_id is None:
+                raise ValidationError(
+                    "node_id không đúng định dạng UUID."
+                )
+
+        allowed_metrics = {
+            "cpu_percent",
+            "memory_percent",
+            "disk_percent",
+            "node_offline_seconds",
+        }
+
+        allowed_severities = {
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL",
+        }
+
+        allowed_statuses = {
+            "FIRING",
+            "ACKNOWLEDGED",
+            "RECOVERED",
+        }
+
+        if metric is not None and metric not in allowed_metrics:
+            raise ValidationError(
+                "metric không hợp lệ."
+            )
+
+        if severity is not None and severity not in allowed_severities:
+            raise ValidationError(
+                "severity không hợp lệ."
+            )
+
+        if status is not None and status not in allowed_statuses:
+            raise ValidationError(
+                "status không hợp lệ."
+            )
+
+        for field_name, value in (
+            ("start_time", start_time),
+            ("end_time", end_time),
+        ):
+            if value is not None and (
+                not isinstance(value, datetime)
+                or value.tzinfo is None
+                or value.utcoffset() is None
+            ):
+                raise ValidationError(
+                    f"{field_name} phải là datetime có timezone."
+                )
+
+        if (
+            start_time is not None
+            and end_time is not None
+            and start_time > end_time
+        ):
+            raise ValidationError(
+                "start_time không được lớn hơn end_time."
+            )
+
+        filters = []
+
+        if normalized_node_id is not None:
+            filters.append(
+                AlertModel.node_id == normalized_node_id
+            )
+
+        if metric is not None:
+            filters.append(
+                AlertModel.metric == metric
+            )
+
+        if severity is not None:
+            filters.append(
+                AlertModel.severity == severity
+            )
+
+        if status is not None:
+            filters.append(
+                AlertModel.status == status
+            )
+
+        if start_time is not None:
+            filters.append(
+                AlertModel.triggered_at >= start_time
+            )
+
+        if end_time is not None:
+            filters.append(
+                AlertModel.triggered_at <= end_time
+            )
+
+        try:
+            with self._session_factory() as session:
+                count_statement = (
+                    select(func.count())
+                    .select_from(AlertModel)
+                    .where(*filters)
+                )
+
+                total = session.execute(
+                    count_statement
+                ).scalar_one()
+
+                offset = (page - 1) * page_size
+
+                statement = (
+                    select(AlertModel)
+                    .where(*filters)
+                    .order_by(
+                        AlertModel.triggered_at.desc(),
+                        AlertModel.id,
+                    )
+                    .offset(offset)
+                    .limit(page_size)
+                )
+
+                models = session.execute(
+                    statement
+                ).scalars().all()
+
+                items = [
+                    self._to_domain(model)
+                    for model in models
+                ]
+
+                return items, total
+
+        except (IntegrityError, DataError) as error:
+            self._handle_write_error(error)
+
+    # ---------------------------------------------------------
+    # Alert Acknowledgement
+    # ---------------------------------------------------------
+
+    def acknowledge(
+        self,
+        alert_id: str,
+        actor_id: str,
+        acknowledged_at: datetime,
+    ) -> Alert | None:
+
+        normalized_alert_id = self._normalize_uuid(alert_id)
+        normalized_actor_id = self._normalize_uuid(actor_id)
+
+        if normalized_alert_id is None:
+            return None
+
+        if normalized_actor_id is None:
+            raise ValidationError(
+                "actor_id không đúng định dạng UUID."
+            )
+
+        if (
+            not isinstance(acknowledged_at, datetime)
+            or acknowledged_at.tzinfo is None
+            or acknowledged_at.utcoffset() is None
+        ):
+            raise ValidationError(
+                "acknowledged_at phải là datetime có timezone."
+            )
+
+        try:
+            with self._session_factory() as session:
+                # Khóa bản ghi để tránh hai request xác nhận
+                # đồng thời tạo ra hai lịch sử khác nhau.
+                statement = (
+                    select(AlertModel)
+                    .where(
+                        AlertModel.id == normalized_alert_id
+                    )
+                    .with_for_update()
+                )
+
+                model = session.execute(
+                    statement
+                ).scalar_one_or_none()
+
+                if model is None:
+                    return None
+
+                # Đã xác nhận trước đó:
+                # trả về dữ liệu hiện có, không ghi lịch sử mới.
+                if model.status == "ACKNOWLEDGED":
+                    return self._to_domain(model)
+
+                # Không cho xác nhận Alert đã phục hồi.
+                if model.status == "RECOVERED":
+                    raise ResourceConflictError(
+                        "Không thể xác nhận Alert đã phục hồi."
+                    )
+
+                if model.status != "FIRING":
+                    raise ResourceConflictError(
+                        "Trạng thái Alert không cho phép xác nhận."
+                    )
+
+                previous_status = model.status
+
+                model.status = "ACKNOWLEDGED"
+                model.acknowledged_by = normalized_actor_id
+                model.acknowledged_at = acknowledged_at
+
+                history = AlertHistoryModel(
+                    id=str(uuid4()),
+                    alert_id=str(model.id),
+                    actor_id=normalized_actor_id,
+                    action="ACKNOWLEDGE",
+                    from_status=previous_status,
+                    to_status="ACKNOWLEDGED",
+                    note=None,
+                    created_at=acknowledged_at,
+                )
+
+                session.add(history)
+
+                # Alert và lịch sử được commit cùng transaction.
+                session.commit()
+                session.refresh(model)
+
+                return self._to_domain(model)
+
+        except (IntegrityError, DataError) as error:
+            self._handle_write_error(error)

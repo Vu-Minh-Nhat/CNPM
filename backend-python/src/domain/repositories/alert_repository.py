@@ -107,3 +107,34 @@ class AlertRepository(ABC):
         rule_id: str,
     ) -> list[Alert]:
         raise NotImplementedError
+
+    # ---------------------------------------------------------
+    # Alert Query API
+    # ---------------------------------------------------------
+
+    @abstractmethod
+    def query_alerts(
+        self,
+        node_id: str | None = None,
+        metric: str | None = None,
+        severity: str | None = None,
+        status: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[Alert], int]:
+        raise NotImplementedError
+
+    # ---------------------------------------------------------
+    # Alert Acknowledgement
+    # ---------------------------------------------------------
+
+    @abstractmethod
+    def acknowledge(
+        self,
+        alert_id: str,
+        actor_id: str,
+        acknowledged_at: datetime,
+    ) -> Alert | None:
+        raise NotImplementedError

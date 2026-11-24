@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     String,
@@ -241,6 +242,11 @@ class AlertModel(Base):
         nullable=True,
     )
 
+    triggered_value: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )
+
     severity: Mapped[str] = mapped_column(
         String(16),
         nullable=False,
@@ -261,6 +267,11 @@ class AlertModel(Base):
         nullable=False,
     )
 
+    acknowledged_by: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+
     acknowledged_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
@@ -269,4 +280,63 @@ class AlertModel(Base):
     recovered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+
+class AlertHistoryModel(Base):
+    __tablename__ = "alert_history"
+
+    __table_args__ = (
+        Index(
+            "ix_alert_history_alert_time",
+            "alert_id",
+            "created_at",
+        ),
+        Index(
+            "ix_alert_history_actor_time",
+            "actor_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+    )
+
+    alert_id: Mapped[str] = mapped_column(
+        ForeignKey("alerts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    actor_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    action: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    from_status: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+    )
+
+    to_status: Mapped[str | None] = mapped_column(
+        String(16),
+        nullable=True,
+    )
+
+    note: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

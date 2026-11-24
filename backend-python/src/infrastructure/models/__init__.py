@@ -13,6 +13,7 @@ from src.infrastructure.models.asset_models import (
 from src.infrastructure.models.telemetry_model import TelemetryModel
 
 from src.infrastructure.models.alert_models import (
+    AlertHistoryModel,
     AlertModel,
     AlertRuleModel,
 )
@@ -44,6 +45,7 @@ __all__ = [
 
     "AlertModel",
     "AlertRuleModel",
+    "AlertHistoryModel",
 
     "TicketModel",
     "TicketHistoryModel",

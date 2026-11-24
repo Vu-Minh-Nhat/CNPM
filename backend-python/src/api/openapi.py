@@ -1,4 +1,5 @@
-﻿from copy import deepcopy
+﻿
+from copy import deepcopy
 
 
 def build_openapi():
@@ -362,6 +363,95 @@ def build_openapi():
     })
 
     # ------------------------------------------------------------------
+    # Alert schemas
+    # ------------------------------------------------------------------
+
+    schemas["Alert"] = object_schema({
+        "id": uuid,
+        "node_id": uuid,
+        "rule_id": {
+            **uuid,
+            "nullable": True,
+        },
+        "metric": {
+            "type": "string",
+            "enum": [
+                "cpu_percent",
+                "memory_percent",
+                "disk_percent",
+                "node_offline_seconds",
+            ],
+        },
+        "operator": {
+            "type": "string",
+            "enum": [">", ">=", "<", "<="],
+        },
+        "threshold": {
+            "type": "number",
+            "nullable": True,
+        },
+        "triggered_value": {
+            "type": "number",
+            "nullable": True,
+            "description": "Giá trị thực tế tại thời điểm kích hoạt Alert.",
+        },
+        "severity": {
+            "type": "string",
+            "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+        },
+        "status": {
+            "type": "string",
+            "enum": ["FIRING", "ACKNOWLEDGED", "RECOVERED"],
+        },
+        "message": {
+            "type": "string",
+        },
+        "triggered_at": {
+            "type": "string",
+            "format": "date-time",
+        },
+        "acknowledged_by": {
+            **uuid,
+            "nullable": True,
+            "description": "UUID tài khoản đã xác nhận Alert.",
+        },
+        "acknowledged_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": True,
+        },
+        "recovered_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": True,
+        },
+    })
+
+    schemas["AlertPagination"] = object_schema({
+        "page": {
+            "type": "integer",
+            "minimum": 1,
+        },
+        "page_size": {
+            "type": "integer",
+            "minimum": 1,
+        },
+        "total": {
+            "type": "integer",
+            "minimum": 0,
+        },
+        "total_pages": {
+            "type": "integer",
+            "minimum": 0,
+        },
+    })
+
+    schemas["AlertList"] = object_schema({
+        "items": array("Alert"),
+        "pagination": ref("AlertPagination"),
+    })
+
+    # ------------------------------------------------------------------
     # Marker schemas - Task 58
     # ------------------------------------------------------------------
 
@@ -624,6 +714,159 @@ def build_openapi():
     }
 
     # ------------------------------------------------------------------
+    # Alert API
+    # ------------------------------------------------------------------
+
+    alert_filters = [
+        {
+            "name": "node_id",
+            "in": "query",
+            "required": False,
+            "description": "Lọc theo UUID của Node.",
+            "schema": uuid,
+        },
+        {
+            "name": "metric",
+            "in": "query",
+            "required": False,
+            "description": "Lọc theo chỉ số giám sát.",
+            "schema": {
+                "type": "string",
+                "enum": [
+                    "cpu_percent",
+                    "memory_percent",
+                    "disk_percent",
+                    "node_offline_seconds",
+                ],
+            },
+        },
+        {
+            "name": "severity",
+            "in": "query",
+            "required": False,
+            "description": "Lọc theo mức độ nghiêm trọng.",
+            "schema": {
+                "type": "string",
+                "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
+            },
+        },
+        {
+            "name": "status",
+            "in": "query",
+            "required": False,
+            "description": "Lọc theo trạng thái Alert.",
+            "schema": {
+                "type": "string",
+                "enum": ["FIRING", "ACKNOWLEDGED", "RECOVERED"],
+            },
+        },
+        {
+            "name": "start_time",
+            "in": "query",
+            "required": False,
+            "description": "Lọc Alert được kích hoạt từ thời điểm này.",
+            "schema": {
+                "type": "string",
+                "format": "date-time",
+            },
+        },
+        {
+            "name": "end_time",
+            "in": "query",
+            "required": False,
+            "description": "Lọc Alert được kích hoạt đến thời điểm này.",
+            "schema": {
+                "type": "string",
+                "format": "date-time",
+            },
+        },
+        {
+            "name": "page",
+            "in": "query",
+            "required": False,
+            "description": "Trang kết quả, bắt đầu từ 1.",
+            "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1,
+            },
+        },
+        {
+            "name": "page_size",
+            "in": "query",
+            "required": False,
+            "description": "Số Alert tối đa trên một trang.",
+            "schema": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "default": 20,
+            },
+        },
+    ]
+
+    paths["/alerts"] = {
+        "get": {
+            **operation(
+                "Alerts",
+                "Danh sách Alert — cả ba vai trò",
+                ref("AlertList"),
+                errors=(400, 401, 403, 503),
+            ),
+            "description": (
+                "Tra cứu Alert theo Node, metric, severity, status "
+                "và khoảng thời gian kích hoạt. Kết quả được phân trang."
+            ),
+            "parameters": alert_filters,
+        },
+    }
+
+    paths["/alerts/{alert_id}"] = {
+        "parameters": [{
+            "name": "alert_id",
+            "in": "path",
+            "required": True,
+            "description": "UUID của Alert.",
+            "schema": uuid,
+        }],
+        "get": operation(
+            "Alerts",
+            "Chi tiết Alert — cả ba vai trò",
+            ref("Alert"),
+            errors=(400, 401, 403, 404, 503),
+        ),
+    }
+
+    paths["/alerts/{alert_id}/acknowledge"] = {
+        "parameters": [{
+            "name": "alert_id",
+            "in": "path",
+            "required": True,
+            "description": "UUID của Alert cần xác nhận.",
+            "schema": uuid,
+        }],
+        "post": {
+            **operation(
+                "Alerts",
+                "Xác nhận Alert — Administrator, Operator",
+                ref("Alert"),
+                errors=(400, 401, 403, 404, 409, 503),
+            ),
+            "description": (
+                "Xác nhận Alert đang ở trạng thái FIRING. "
+                "Người xác nhận được lấy từ tài khoản trong JWT hiện tại; "
+                "client không gửi actor_id hoặc request body. "
+                "Thao tác chuyển FIRING thành ACKNOWLEDGED, "
+                "ghi acknowledged_by và acknowledged_at. "
+                "ACKNOWLEDGED không đồng nghĩa với RECOVERED. "
+                "Nếu Alert đã ACKNOWLEDGED, yêu cầu lặp lại trả về "
+                "trạng thái hiện tại mà không tạo lịch sử xác nhận trùng. "
+                "Alert đã RECOVERED không thể được xác nhận."
+            ),
+        },
+    }
+
+    # ------------------------------------------------------------------
     # Marker API - Task 58
     # ------------------------------------------------------------------
 
@@ -796,6 +1039,9 @@ def build_openapi():
     }
 
     # ------------------------------------------------------------------
+    # Telemetry examples
+    # ------------------------------------------------------------------
+
     paths["/telemetry/nodes/{node_id}/latest"]["get"]["responses"][
         "200"
     ]["content"]["application/json"]["example"] = {
@@ -846,6 +1092,8 @@ def build_openapi():
             }
         ],
     }
+
+    # ------------------------------------------------------------------
     # Telemetry Agent Ingestion API
     # ------------------------------------------------------------------
 
