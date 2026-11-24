@@ -19,6 +19,7 @@ Every write requires the current positive `version`; a successful update increme
 | Method and path | Access | Purpose |
 |---|---|---|
 | `GET /tickets?status=...` | Operator; Technician sees assigned tickets only | List tickets; status is optional |
+| `GET /tickets/technicians` | Operator | List active Technicians available for assignment |
 | `POST /tickets` | Operator | Create a manual ticket or link an Alert using `node_id`, optional `alert_id`, `title`, and `description` |
 | `GET /tickets/{ticket_id}` | Operator; assigned Technician | Ticket details and change history |
 | `GET /tickets/{ticket_id}/history` | Operator; assigned Technician | Ordered audit/history events |

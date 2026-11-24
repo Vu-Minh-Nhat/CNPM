@@ -203,6 +203,14 @@ class TicketService:
         )
         return [self._ticket_response(ticket) for ticket in tickets]
 
+    def list_active_technicians(self, role: Role) -> list[dict]:
+        self._require_role(role, (Role.OPERATOR,))
+        return [
+            {"id": account.id, "email": account.email}
+            for account in self._accounts.list_accounts()
+            if account.role == Role.TECHNICIAN and account.is_active
+        ]
+
     def get_ticket(
         self,
         ticket_id: str,

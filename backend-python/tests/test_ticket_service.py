@@ -272,6 +272,39 @@ class TestTicketService(unittest.TestCase):
                 },
             )
 
+    def test_operator_can_list_only_active_technicians(self):
+        inactive_id = str(uuid4())
+        self.accounts.list_accounts.return_value = [
+            Account(
+                id=self.technician_id,
+                email="tech@example.test",
+                role=Role.TECHNICIAN,
+                is_active=True,
+                password_hash="",
+            ),
+            Account(
+                id=inactive_id,
+                email="inactive@example.test",
+                role=Role.TECHNICIAN,
+                is_active=False,
+                password_hash="",
+            ),
+            Account(
+                id=self.operator_id,
+                email="operator@example.test",
+                role=Role.OPERATOR,
+                is_active=True,
+                password_hash="",
+            ),
+        ]
+
+        self.assertEqual(
+            self.service.list_active_technicians(Role.OPERATOR),
+            [{"id": self.technician_id, "email": "tech@example.test"}],
+        )
+        with self.assertRaises(ForbiddenError):
+            self.service.list_active_technicians(Role.TECHNICIAN)
+
     def test_technician_cannot_access_an_unassigned_ticket(self):
         ticket = self.create_ticket()
         with self.assertRaises(ForbiddenError):

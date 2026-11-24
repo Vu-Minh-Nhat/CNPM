@@ -11,6 +11,7 @@ kết nối với Backend Python Flask.
 - Sidebar và điều hướng theo vai trò.
 - Trang Dashboard.
 - Danh sách tài sản Node/Server.
+- Tra cứu và xử lý Ticket bảo trì theo vai trò Operator/Technician.
 - Tìm kiếm theo mã, tên, serial hoặc vị trí.
 - Lọc tài sản theo Site và xóa bộ lọc.
 - Xem chi tiết Node cùng Rack, Room, Site và Workload.
@@ -123,6 +124,7 @@ src/
 │   ├── (portal)/
 │   │   ├── assets/page.tsx
 │   │   ├── dashboard/page.tsx
+│   ├── tickets/page.tsx
 │   │   ├── forbidden/page.tsx
 │   │   ├── users/page.tsx
 │   │   └── layout.tsx
@@ -157,6 +159,7 @@ Nhóm `(portal)` tổ chức layout, không xuất hiện trong URL.
 | `/` | Trang đăng nhập |
 | `/dashboard` | Administrator, Operator, Technician |
 | `/assets` | Administrator, Operator, Technician |
+| `/tickets` | Operator, Technician |
 | `/users` | Administrator |
 | `/forbidden` | Trang thông báo không có quyền |
 
@@ -279,8 +282,8 @@ Nếu đổi cổng Frontend, cập nhật CORS ở Backend cho phù hợp.
 
 ## 14. Phạm vi phát triển tiếp
 
-Các màn hình telemetry, cảnh báo, lịch sử, ticket,
-audit và báo cáo được phát triển theo kế hoạch Jira.
+Các màn hình telemetry, cảnh báo, audit và báo cáo
+được phát triển theo kế hoạch Jira.
 
 Việc chạy được giao diện cục bộ chưa xác nhận hệ thống đã
 được triển khai production.

@@ -19,6 +19,11 @@ const menuItems = [
     roles: ["Administrator", "Operator", "Technician"],
   },
   {
+    label: "Ticket bảo trì",
+    href: "/tickets",
+    roles: ["Operator", "Technician"],
+  },
+  {
     label: "Quản lý tài khoản",
     href: "/users",
     roles: ["Administrator"],

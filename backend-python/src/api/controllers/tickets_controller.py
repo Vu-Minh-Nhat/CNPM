@@ -37,6 +37,18 @@ def create_tickets_blueprint(
             status=request.args.get("status"),
         )), 200
 
+    @blueprint.get("/technicians")
+    @require_auth(
+        session_service=session_service,
+        allowed_roles=(Role.OPERATOR,),
+    )
+    def list_active_technicians():
+        return jsonify(
+            ticket_service.list_active_technicians(
+                role=g.current_account.role,
+            )
+        ), 200
+
     @blueprint.post("")
     @require_auth(
         session_service=session_service,

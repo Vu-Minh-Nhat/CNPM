@@ -569,6 +569,11 @@ def build_openapi():
         "history": array("TicketHistory"),
     })
 
+    schemas["ActiveTechnician"] = object_schema({
+        "id": uuid,
+        "email": {"type": "string", "format": "email"},
+    })
+
     # ------------------------------------------------------------------
     # Marker schemas - Task 58
     # ------------------------------------------------------------------
@@ -1031,6 +1036,15 @@ def build_openapi():
             status=201,
             body="CreateTicket",
             errors=(400, 401, 403, 404, 503),
+        ),
+    }
+
+    paths["/tickets/technicians"] = {
+        "get": operation(
+            "Tickets",
+            "Danh sách Technician đang hoạt động — Operator",
+            array("ActiveTechnician"),
+            errors=(401, 403, 503),
         ),
     }
 
