@@ -1,744 +1,306 @@
-from copy import deepcopy
+from __future__ import annotations
+
+from typing import Any, Dict, Optional
+
+from flask import Blueprint, jsonify
+
+openapi_bp = Blueprint("openapi", __name__)
 
 
-def build_openapi():
-    def ref(name):
-        return {"$ref": f"#/components/schemas/{name}"}
-
-    def array(name):
-        return {"type": "array", "items": ref(name)}
-
-    def object_schema(properties, required=None):
-        return {
-            "type": "object",
-            "properties": properties,
-            "required": list(properties) if required is None else required,
-        }
-
-    def input_schema(properties, required):
-        schema = object_schema(properties, required)
-        schema["additionalProperties"] = False
-        return schema
-
-    uuid = {"type": "string", "format": "uuid"}
-
-    code = {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 64,
-        "pattern": r"\S",
-    }
-
-    name = {
-        "type": "string",
-        "minLength": 1,
-        "maxLength": 200,
-        "pattern": r"\S",
-    }
-
-    role = {
-        "type": "string",
-        "enum": ["Administrator", "Operator", "Technician"],
-    }
-
-    schemas = {}
-
-    def nullable(schema_name):
-        schema = deepcopy(schemas[schema_name])
-        schema["nullable"] = True
-        return schema
-
-    schemas["Error"] = object_schema({
-        "message": {"type": "string"},
-        "error": {"type": "string"},
-        "statusCode": {"type": "integer"},
-    })
-
-    schemas["Message"] = object_schema({
-        "message": {"type": "string"},
-    })
-
-    schemas["TelemetryInput"] = input_schema({
-        "message_id": uuid,
-        "node_id": uuid,
-        "measured_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Thời điểm Agent đo dữ liệu, phải có múi giờ.",
+ALERT_SCHEMAS: Dict[str, Any] = {
+    "AuditLogEntry": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": [
+                    "alert_created",
+                    "alert_updated",
+                    "alert_acknowledged",
+                    "alert_resolved",
+                ],
+            },
+            "actor": {"type": "string", "example": "op-khoi"},
+            "role": {"type": "string", "nullable": True, "example": "operator"},
+            "timestamp": {"type": "string", "format": "date-time"},
+            "detail": {"type": "object", "additionalProperties": True},
         },
-        "cpu_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
+        "required": ["action", "actor", "timestamp"],
+    },
+    "AlertItem": {
+        "type": "object",
+        "properties": {
+            "alert_id": {"type": "string", "example": "ALT-000001"},
+            "rule_id": {"type": "string", "nullable": True, "example": "rule-cpu-high"},
+            "node_id": {"type": "string", "example": "node-01"},
+            "alert_type": {
+                "type": "string",
+                "enum": ["threshold", "node_offline"],
+                "example": "threshold",
+            },
+            "severity": {
+                "type": "string",
+                "enum": ["warning", "critical"],
+                "example": "critical",
+            },
+            "status": {
+                "type": "string",
+                "enum": ["active", "resolved"],
+                "example": "active",
+            },
+            "reason": {
+                "type": "string",
+                "example": "cpu value 88.0 exceeded threshold 70.0",
+            },
+            "value": {"type": "number", "format": "float", "nullable": True, "example": 88.0},
+            "threshold": {"type": "number", "format": "float", "nullable": True, "example": 70.0},
+            "hit_count": {"type": "integer", "example": 1},
+            "created_at": {"type": "string", "format": "date-time", "nullable": True},
+            "updated_at": {"type": "string", "format": "date-time", "nullable": True},
+            "resolved_at": {"type": "string", "format": "date-time", "nullable": True},
+            "resolution_reason": {"type": "string", "nullable": True, "example": "rule_disabled"},
+            "acknowledged": {"type": "boolean", "example": False},
+            "acknowledged_by": {"type": "string", "nullable": True, "example": None},
+            "acknowledged_at": {"type": "string", "format": "date-time", "nullable": True},
         },
-        "memory_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-        },
-        "disk_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-        },
-    }, [
-        "message_id",
-        "node_id",
-        "measured_at",
-        "cpu_percent",
-        "memory_percent",
-        "disk_percent",
-    ])
-
-    schemas["TelemetryRecord"] = object_schema({
-        "id": uuid,
-        "message_id": uuid,
-        "node_id": uuid,
-        "measured_at": {
-            "type": "string",
-            "format": "date-time",
-        },
-        "cpu_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-        },
-        "memory_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-        },
-        "disk_percent": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-        },
-        "received_at": {
-            "type": "string",
-            "format": "date-time",
-        },
-    })
-
-    schemas["Health"] = object_schema({
-        "status": {"type": "string", "example": "ok"},
-        "service": {"type": "string", "example": "ar-imms-backend"},
-        "timestamp": {"type": "string", "format": "date-time"},
-        "uptimeSeconds": {"type": "integer", "minimum": 0},
-    })
-
-    schemas["LoginInput"] = object_schema({
-        "email": {
-            "type": "string",
-            "example": "admin@arimms.local",
-        },
-        "password": {
-            "type": "string",
-            "format": "password",
-        },
-    })
-
-    schemas["LoginResult"] = object_schema({
-        "accessToken": {"type": "string"},
-        "role": role,
-    })
-
-    schemas["CurrentUser"] = object_schema({
-        "userId": uuid,
-        "email": {"type": "string"},
-        "role": role,
-    })
-
-    schemas["Account"] = object_schema({
-        "id": uuid,
-        "email": {"type": "string"},
-        "role": role,
-        "isActive": {"type": "boolean"},
-    })
-
-    schemas["CreateAccount"] = input_schema({
-        "email": {
-            "type": "string",
-            "format": "email",
-            "maxLength": 254,
-        },
-        "password": {
-            "type": "string",
-            "format": "password",
-            "minLength": 8,
-            "description": "Tối thiểu 8 ký tự, tối đa 72 byte UTF-8.",
-        },
-        "role": role,
-    }, ["email", "password", "role"])
-
-    schemas["ChangeRole"] = input_schema(
-        {"role": role},
-        ["role"],
-    )
-
-    site_fields = {
-        "id": uuid,
-        "code": code,
-        "name": name,
-    }
-
-    room_fields = {
-        "id": uuid,
-        "siteId": uuid,
-        "code": code,
-        "name": name,
-    }
-
-    rack_fields = {
-        "id": uuid,
-        "roomId": uuid,
-        "code": code,
-        "name": name,
-        "capacityU": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 100,
-        },
-    }
-
-    node_fields = {
-        "id": uuid,
-        "rackId": uuid,
-        "code": code,
-        "name": name,
-        "serialNumber": {
-            "type": "string",
-            "maxLength": 128,
-            "nullable": True,
-        },
-    }
-
-    schemas["Site"] = object_schema(site_fields)
-
-    schemas["RoomSummary"] = object_schema(room_fields)
-
-    schemas["Room"] = object_schema({
-        **room_fields,
-        "site": nullable("Site"),
-    })
-
-    schemas["RackSummary"] = object_schema(rack_fields)
-
-    schemas["Rack"] = object_schema({
-        **rack_fields,
-        "room": nullable("RoomSummary"),
-    })
-
-    schemas["NodeSummary"] = object_schema(node_fields)
-
-    schemas["Workload"] = object_schema({
-        "id": uuid,
-        "nodeId": uuid,
-        "code": code,
-        "name": name,
-        "runtimeId": {
-            "type": "string",
-            "maxLength": 200,
-            "nullable": True,
-        },
-    })
-
-    schemas["AssetRack"] = object_schema({
-        **rack_fields,
-        "room": nullable("Room"),
-    })
-
-    schemas["Node"] = object_schema({
-        **node_fields,
-        "rack": nullable("AssetRack"),
-        "workloads": array("Workload"),
-    })
-
-    schemas["RoomDetail"] = object_schema({
-        **schemas["Room"]["properties"],
-        "racks": array("RackSummary"),
-    })
-
-    schemas["RackDetail"] = object_schema({
-        **schemas["Rack"]["properties"],
-        "nodes": array("NodeSummary"),
-    })
-
-    # ------------------------------------------------------------------
-    # Marker schemas - Task 58
-    # ------------------------------------------------------------------
-
-    schemas["Marker"] = object_schema({
-        "id": uuid,
-        "marker_type": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 32,
-            "pattern": r"\S",
-        },
-        "identifier": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "pattern": r"\S",
-        },
-        "node_id": uuid,
-        "is_active": {
-            "type": "boolean",
-        },
-        "created_at": {
-            "type": "string",
-            "format": "date-time",
-        },
-        "updated_at": {
-            "type": "string",
-            "format": "date-time",
-        },
-    })
-
-    schemas["CreateMarker"] = input_schema({
-        "marker_type": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 32,
-            "pattern": r"\S",
-        },
-        "identifier": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128,
-            "pattern": r"\S",
-        },
-        "node_id": uuid,
-    }, [
-        "marker_type",
-        "identifier",
-        "node_id",
-    ])
-
-    schemas["MarkerLookupResult"] = object_schema({
-        "marker": ref("Marker"),
-        "node": ref("Node"),
-    })
-
-    resources = (
-        (
-            "sites",
-            "Site",
-            "Site",
+        "required": [
+            "alert_id",
+            "node_id",
+            "alert_type",
+            "severity",
+            "status",
+            "reason",
+            "hit_count",
+            "acknowledged",
+        ],
+    },
+    "AlertDetail": {
+        "allOf": [
+            {"$ref": "#/components/schemas/AlertItem"},
             {
-                "code": code,
-                "name": name,
-            },
-            ["code", "name"],
-        ),
-        (
-            "rooms",
-            "Room",
-            "RoomDetail",
-            {
-                "siteId": uuid,
-                "code": code,
-                "name": name,
-            },
-            ["siteId", "code", "name"],
-        ),
-        (
-            "racks",
-            "Rack",
-            "RackDetail",
-            {
-                "roomId": uuid,
-                "code": code,
-                "name": name,
-                "capacityU": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                },
-            },
-            ["roomId", "code", "name", "capacityU"],
-        ),
-        (
-            "servers",
-            "Node",
-            "Node",
-            {
-                "rackId": uuid,
-                "code": code,
-                "name": name,
-                "serialNumber": {
-                    "type": "string",
-                    "nullable": True,
-                    "minLength": 1,
-                    "maxLength": 128,
-                    "pattern": r"\S",
-                },
-            },
-            ["rackId", "code", "name"],
-        ),
-    )
-
-    def response(description, schema):
-        return {
-            "description": description,
-            "content": {
-                "application/json": {
-                    "schema": schema,
-                }
-            },
-        }
-
-    error_names = {
-        400: "Dữ liệu không hợp lệ.",
-        401: "Chưa xác thực hoặc token không hợp lệ.",
-        403: "Không đủ quyền.",
-        404: "Không tìm thấy dữ liệu.",
-        409: "Trùng dữ liệu hoặc còn quan hệ phụ thuộc.",
-    }
-
-    def operation(
-        tag,
-        summary,
-        output,
-        status=200,
-        body=None,
-        errors=(),
-        public=False,
-    ):
-        responses = {
-            str(status): response(
-                "Thành công.",
-                output,
-            ),
-        }
-
-        for error in errors:
-            responses[str(error)] = response(
-                error_names[error],
-                ref("Error"),
-            )
-
-        result = {
-            "tags": [tag],
-            "summary": summary,
-            "responses": responses,
-        }
-
-        if public:
-            result["security"] = []
-
-        if body:
-            result["requestBody"] = {
-                "required": True,
-                "content": {
-                    "application/json": {
-                        "schema": ref(body),
+                "type": "object",
+                "properties": {
+                    "audit_logs": {
+                        "type": "array",
+                        "items": {"$ref": "#/components/schemas/AuditLogEntry"},
                     }
                 },
-            }
-
-        return result
-
-    paths = {
-        "/health": {
-            "get": operation(
-                "Health",
-                "Kiểm tra hoạt động",
-                ref("Health"),
-                public=True,
-            )
+                "required": ["audit_logs"],
+            },
+        ]
+    },
+    "AlertListResponse": {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/AlertItem"},
+            },
+            "total": {"type": "integer", "example": 2},
+            "page": {"type": "integer", "example": 1},
+            "page_size": {"type": "integer", "example": 20},
+            "total_pages": {"type": "integer", "example": 1},
         },
-
-        "/auth/login": {
-            "post": operation(
-                "Auth",
-                "Đăng nhập và nhận JWT",
-                ref("LoginResult"),
-                body="LoginInput",
-                errors=(400, 401),
-                public=True,
-            )
+        "required": ["items", "total", "page", "page_size", "total_pages"],
+    },
+    "AcknowledgeAlertRequest": {
+        "type": "object",
+        "properties": {
+            "acknowledged_by": {
+                "type": "string",
+                "nullable": True,
+                "example": "op-khoi",
+            },
+            "note": {
+                "type": "string",
+                "nullable": True,
+                "example": "Đã tiếp nhận và kiểm tra node",
+            },
         },
+    },
+}
 
-        "/auth/me": {
-            "get": operation(
-                "Auth",
-                "Thông tin tài khoản hiện tại",
-                ref("CurrentUser"),
-                errors=(401, 403),
-            )
-        },
 
-        "/users": {
-            "get": operation(
-                "Users",
-                "Danh sách tài khoản — Administrator",
-                array("Account"),
-                errors=(401, 403),
-            ),
-            "post": operation(
-                "Users",
-                "Tạo tài khoản — Administrator",
-                ref("Account"),
-                status=201,
-                body="CreateAccount",
-                errors=(400, 401, 403, 409),
-            ),
-        },
-
-        "/users/{id}/role": {
-            "parameters": [{
-                "name": "id",
-                "in": "path",
-                "required": True,
-                "schema": uuid,
-            }],
-            "patch": operation(
-                "Users",
-                "Đổi vai trò — Administrator",
-                ref("Account"),
-                body="ChangeRole",
-                errors=(400, 401, 403, 404),
-            ),
-        },
-
-        "/assets": {
-            "get": operation(
-                "Assets",
-                "Cây tài sản — cả ba vai trò",
-                array("Node"),
-                errors=(401, 403),
-            )
-        },
-    }
-
-    # ------------------------------------------------------------------
-    # Marker API - Task 58
-    # ------------------------------------------------------------------
-
-    paths["/markers"] = {
-        "get": operation(
-            "Markers",
-            "Danh sách Marker — Administrator",
-            array("Marker"),
-            errors=(401, 403),
-        ),
-
-        "post": operation(
-            "Markers",
-            "Đăng ký Marker — Administrator",
-            ref("Marker"),
-            status=201,
-            body="CreateMarker",
-            errors=(400, 401, 403, 409),
-        ),
-    }
-
-    paths["/markers/lookup"] = {
+ALERT_PATHS: Dict[str, Any] = {
+    "/alerts": {
         "get": {
-            "tags": ["Markers"],
-            "summary": "Tra cứu Node từ Marker — cả ba vai trò",
+            "tags": ["Alerts"],
+            "summary": "Danh sách cảnh báo (hỗ trợ lọc và phân trang)",
+            "description": (
+                "Tra cứu cảnh báo theo node_id, loại cảnh báo, mức độ, trạng thái bất thường "
+                "(active/resolved), trạng thái xác nhận (acknowledged) và khoảng thời gian."
+            ),
             "parameters": [
                 {
-                    "name": "marker_type",
+                    "name": "node_id",
                     "in": "query",
-                    "required": True,
-                    "schema": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 32,
-                        "pattern": r"\S",
-                    },
+                    "schema": {"type": "string"},
+                    "description": "Lọc theo mã node",
                 },
                 {
-                    "name": "identifier",
+                    "name": "alert_type",
                     "in": "query",
-                    "required": True,
-                    "schema": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 128,
-                        "pattern": r"\S",
-                    },
+                    "schema": {"type": "string", "enum": ["threshold", "node_offline"]},
+                    "description": "Lọc theo loại cảnh báo",
+                },
+                {
+                    "name": "severity",
+                    "in": "query",
+                    "schema": {"type": "string", "enum": ["warning", "critical"]},
+                    "description": "Lọc theo mức độ cảnh báo",
+                },
+                {
+                    "name": "status",
+                    "in": "query",
+                    "schema": {"type": "string", "enum": ["active", "resolved"]},
+                    "description": "Lọc theo tình trạng bất thường hiện tại",
+                },
+                {
+                    "name": "acknowledged",
+                    "in": "query",
+                    "schema": {"type": "boolean"},
+                    "description": "Lọc theo trạng thái đã xác nhận tiếp nhận",
+                },
+                {
+                    "name": "from",
+                    "in": "query",
+                    "schema": {"type": "string", "format": "date-time"},
+                    "description": "Mốc thời gian bắt đầu (ISO-8601)",
+                },
+                {
+                    "name": "to",
+                    "in": "query",
+                    "schema": {"type": "string", "format": "date-time"},
+                    "description": "Mốc thời gian kết thúc (ISO-8601)",
+                },
+                {
+                    "name": "page",
+                    "in": "query",
+                    "schema": {"type": "integer", "minimum": 1, "default": 1},
+                },
+                {
+                    "name": "page_size",
+                    "in": "query",
+                    "schema": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
                 },
             ],
             "responses": {
-                "200": response(
-                    "Marker và Node tương ứng.",
-                    ref("MarkerLookupResult"),
-                ),
-                "401": response(
-                    error_names[401],
-                    ref("Error"),
-                ),
-                "403": response(
-                    error_names[403],
-                    ref("Error"),
-                ),
-                "404": response(
-                    "Marker không tồn tại hoặc đã bị vô hiệu hóa.",
-                    ref("Error"),
-                ),
+                "200": {
+                    "description": "Danh sách cảnh báo phân trang",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/AlertListResponse"}
+                        }
+                    },
+                },
+                "400": {"description": "Tham số lọc hoặc phân trang không hợp lệ"},
+                "401": {"description": "Chưa xác thực danh tính"},
+                "403": {"description": "Không đủ quyền truy cập"},
             },
         }
-    }
-
-    paths["/markers/{marker_id}/deactivate"] = {
-        "parameters": [{
-            "name": "marker_id",
-            "in": "path",
-            "required": True,
-            "schema": uuid,
-        }],
-        "patch": operation(
-            "Markers",
-            "Vô hiệu hóa Marker — Administrator",
-            ref("Marker"),
-            errors=(401, 403, 404),
-        ),
-    }
-
-    paths["/telemetry"] = {
+    },
+    "/alerts/{alert_id}": {
+        "get": {
+            "tags": ["Alerts"],
+            "summary": "Chi tiết cảnh báo và lịch sử audit",
+            "parameters": [
+                {
+                    "name": "alert_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string", "example": "ALT-000001"},
+                }
+            ],
+            "responses": {
+                "200": {
+                    "description": "Chi tiết cảnh báo kèm audit_logs",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/AlertDetail"}
+                        }
+                    },
+                },
+                "401": {"description": "Chưa xác thực danh tính"},
+                "403": {"description": "Không đủ quyền truy cập"},
+                "404": {"description": "Không tìm thấy cảnh báo"},
+            },
+        }
+    },
+    "/alerts/{alert_id}/acknowledge": {
         "post": {
-            "tags": ["Telemetry"],
-            "summary": "Agent gửi dữ liệu Telemetry cho Node",
+            "tags": ["Alerts"],
+            "summary": "Xác nhận đã tiếp nhận cảnh báo",
             "description": (
-                "Xác thực Agent bằng X-Agent-Key. "
-                "Agent chỉ được gửi dữ liệu cho Node được cấp quyền. "
-                "Gửi lại cùng message_id và payload sẽ không tạo bản ghi trùng. "
-                "Nếu message_id trùng nhưng payload khác, trả về 409."
+                "Ghi nhận người xác nhận và thời điểm xác nhận. Không tự động đổi status sang "
+                "resolved; xử lý idempotent nếu cảnh báo đã được xác nhận trước đó."
             ),
-            "security": [{"agentKey": []}],
+            "parameters": [
+                {
+                    "name": "alert_id",
+                    "in": "path",
+                    "required": True,
+                    "schema": {"type": "string", "example": "ALT-000001"},
+                },
+                {
+                    "name": "X-User-Role",
+                    "in": "header",
+                    "schema": {"type": "string", "example": "operator"},
+                },
+                {
+                    "name": "X-User-Id",
+                    "in": "header",
+                    "schema": {"type": "string", "example": "op-khoi"},
+                },
+            ],
             "requestBody": {
-                "required": True,
+                "required": False,
                 "content": {
                     "application/json": {
-                        "schema": ref("TelemetryInput"),
+                        "schema": {"$ref": "#/components/schemas/AcknowledgeAlertRequest"}
                     }
                 },
             },
             "responses": {
-                "200": response(
-                    "Đã tiếp nhận hoặc bản tin đã tồn tại.",
-                    ref("TelemetryRecord"),
-                ),
-                "400": response(
-                    "Dữ liệu không hợp lệ.",
-                    ref("Error"),
-                ),
-                "401": response(
-                    "Agent chưa xác thực.",
-                    ref("Error"),
-                ),
-                "403": response(
-                    "Agent không có quyền gửi cho Node.",
-                    ref("Error"),
-                ),
-                "409": response(
-                    "message_id đã tồn tại với payload khác.",
-                    ref("Error"),
-                ),
-                "503": response(
-                    "Database tạm thời không khả dụng.",
-                    ref("Error"),
-                ),
-                "500": response(
-                    "Lỗi hệ thống.",
-                    ref("Error"),
-                ),
+                "200": {
+                    "description": "Đã xác nhận cảnh báo (hoặc trả lại trạng thái hiện tại nếu gọi lặp)",
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": "#/components/schemas/AlertDetail"}
+                        }
+                    },
+                },
+                "401": {"description": "Chưa xác thực danh tính"},
+                "403": {"description": "Vai trò không có quyền xác nhận cảnh báo"},
+                "404": {"description": "Không tìm thấy cảnh báo"},
             },
         }
-    }
+    },
+}
 
-    for path, model, detail, properties, required in resources:
-        create_name = f"Create_{path}"
-        update_name = f"Update_{path}"
 
-        schemas[create_name] = input_schema(
-            properties,
-            required,
-        )
-
-        schemas[update_name] = input_schema(
-            properties,
-            [],
-        )
-
-        schemas[update_name]["minProperties"] = 1
-
-        paths[f"/{path}"] = {
-            "get": operation(
-                path,
-                "Danh sách — cả ba vai trò",
-                array(model),
-                errors=(401, 403),
-            ),
-            "post": operation(
-                path,
-                "Tạo — Administrator, Operator",
-                ref(model),
-                status=201,
-                body=create_name,
-                errors=(400, 401, 403, 409),
-            ),
-        }
-
-        paths[f"/{path}/{{id}}"] = {
-            "parameters": [{
-                "name": "id",
-                "in": "path",
-                "required": True,
-                "schema": uuid,
-            }],
-            "get": operation(
-                path,
-                "Chi tiết — cả ba vai trò",
-                ref(detail),
-                errors=(400, 401, 403, 404),
-            ),
-            "patch": operation(
-                path,
-                "Cập nhật — Administrator, Operator",
-                ref(model),
-                body=update_name,
-                errors=(400, 401, 403, 404, 409),
-            ),
-            "delete": operation(
-                path,
-                "Xóa — Administrator",
-                ref("Message"),
-                errors=(400, 401, 403, 404, 409),
-            ),
-        }
-
-    return {
+def build_openapi_spec(existing_spec: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    spec: Dict[str, Any] = dict(existing_spec) if isinstance(existing_spec, dict) else {
         "openapi": "3.0.3",
         "info": {
-            "title": "AR-IMMS Backend Python",
+            "title": "Marker Management & Telemetry Alerting API",
             "version": "1.0.0",
-            "description": (
-                "API lõi Flask. Các API có khóa yêu cầu Bearer JWT. "
-                "Code và name được loại bỏ khoảng trắng đầu/cuối "
-                "trước khi kiểm tra. Các trường không có trong schema "
-                "tạo/cập nhật tài sản sẽ bị từ chối."
-            ),
         },
-        "servers": [{"url": "/"}],
-        "security": [{"bearerAuth": []}],
-        "paths": paths,
-        "components": {
-            "securitySchemes": {
-                "bearerAuth": {
-                    "type": "http",
-                    "scheme": "bearer",
-                    "bearerFormat": "JWT",
-                },
-                "agentKey": {
-                    "type": "apiKey",
-                    "in": "header",
-                    "name": "X-Agent-Key",
-                },
-            },
-            "schemas": schemas,
-        },
+        "paths": {},
+        "components": {"schemas": {}},
     }
+
+    paths = spec.setdefault("paths", {})
+    for path, path_item in ALERT_PATHS.items():
+        paths[path] = path_item
+
+    components = spec.setdefault("components", {})
+    schemas = components.setdefault("schemas", {})
+    for schema_name, schema_def in ALERT_SCHEMAS.items():
+        schemas[schema_name] = schema_def
+
+    return spec
+
+
+@openapi_bp.get("/openapi.json")
+def get_openapi_json():
+    return jsonify(build_openapi_spec()), 200

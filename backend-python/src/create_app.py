@@ -4,8 +4,10 @@ from flask import Flask
 from flask_cors import CORS
 
 from src.api.controllers.alert_rules_controller import register_alert_rule_routes
+from src.api.controllers.alerts_controller import alerts_bp
 from src.api.controllers.telemetry_controller import telemetry_bp
 from src.services.alert_detector_service import AlertDetectorService, AlertRuleManager
+from src.services.alert_query_ack_service import AlertQueryAckService
 from src.worker.alert_poller import AlertPoller, should_start_poller_in_flask
 
 
@@ -15,15 +17,20 @@ def attach_alerting_system(app: Flask) -> None:
 
     rule_manager = AlertRuleManager()
     detector = AlertDetectorService(rule_manager)
+    query_ack_service = AlertQueryAckService(detector=detector, rule_manager=rule_manager)
     poll_interval = float(os.environ.get("ALERT_POLLER_INTERVAL_SECONDS", "10.0"))
     poller = AlertPoller(detector=detector, interval_seconds=poll_interval)
 
     app.extensions["alert_rule_manager"] = rule_manager
     app.extensions["alert_detector"] = detector
+    app.extensions["alert_query_ack_service"] = query_ack_service
     app.extensions["alert_poller"] = poller
     app.extensions["alerting_attached"] = True
 
     register_alert_rule_routes(app, rule_manager, detector=detector)
+
+    if "alerts" not in app.blueprints:
+        app.register_blueprint(alerts_bp)
 
     if "telemetry" not in app.blueprints:
         app.register_blueprint(telemetry_bp)
