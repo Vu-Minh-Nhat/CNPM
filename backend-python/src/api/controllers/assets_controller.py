@@ -1,3 +1,5 @@
+# Đang ở C:\Users\Admin\Desktop\CNPM-feature-task-58-marker-management\backend-python
+Get-Content .\src\api\controllers\assets_controller.py
 from flask import Blueprint, jsonify
 
 from src.api.middleware import require_auth
