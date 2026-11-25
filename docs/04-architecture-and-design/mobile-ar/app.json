@@ -23,7 +23,8 @@
           "cameraPermission": "AR-IMMS cần quyền camera để quét Marker trên thiết bị/node."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-asset"
     ]
   }
 }
