@@ -22,6 +22,9 @@ export interface NodeInfo {
   name: string;
   status?: string;
   rack?: string;
+  room?: string;
+  site?: string;
+  workloads?: string[];
   zone?: string;
   ipAddress?: string;
   lastTelemetryAt?: string;

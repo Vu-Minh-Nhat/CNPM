@@ -164,6 +164,12 @@ export const ArNodeOverlay: React.FC<ArNodeOverlayProps> = ({
 };
 
 const styles = StyleSheet.create({
+    badgeText: {
+    color: "#F8FAFC",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
   container: {
     position: "absolute",
     left: 12,
