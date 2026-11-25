@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -6,8 +5,6 @@ from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 
-from src.api.controllers.agents_controller import create_agents_blueprint
-from src.api.controllers.alerts_controller import create_alerts_blueprint
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
 from src.api.controllers.health_controller import health_bp
@@ -19,9 +16,6 @@ from src.api.controllers.sites_controller import create_sites_blueprint
 from src.api.controllers.telemetry_controller import create_telemetry_blueprint
 from src.api.controllers.telemetry_queries_controller import (
     create_telemetry_queries_blueprint,
-)
-from src.api.controllers.tickets_controller import (
-    create_tickets_blueprint,
 )
 from src.api.controllers.users_controller import create_users_blueprint
 from src.api.docs import register_api_docs
@@ -40,7 +34,7 @@ def create_app() -> Flask:
     database_url = os.getenv("DATABASE_URL", "").strip()
 
     if not database_url:
-        raise RuntimeError("DATABASE_URL is not configured in .env.")
+        raise RuntimeError("Chưa cấu hình DATABASE_URL trong .env.")
 
     jwt_secret = os.getenv("JWT_SECRET", "")
 
@@ -50,7 +44,7 @@ def create_app() -> Flask:
         )
     except ValueError as error:
         raise RuntimeError(
-            "JWT_EXPIRES_IN_SECONDS must be an integer."
+            "JWT_EXPIRES_IN_SECONDS phải là số nguyên."
         ) from error
 
     database = Database(database_url)
@@ -77,7 +71,7 @@ def create_app() -> Flask:
         origin.strip()
         for origin in os.getenv(
             "CORS_ORIGINS",
-            "http://localhost:3001,http://localhost:3002",
+            "http://localhost:3001",
         ).split(",")
         if origin.strip()
     ]
@@ -100,13 +94,6 @@ def create_app() -> Flask:
     app.register_blueprint(
         create_users_blueprint(
             users_service=container.users_service,
-            session_service=container.session_service,
-        )
-    )
-
-    app.register_blueprint(
-        create_agents_blueprint(
-            agent_service=container.agent_service,
             session_service=container.session_service,
         )
     )
@@ -157,27 +144,12 @@ def create_app() -> Flask:
         create_telemetry_blueprint(
             telemetry_service=container.telemetry_service,
             session_service=container.session_service,
-            agent_service=container.agent_service,
         )
     )
 
     app.register_blueprint(
         create_telemetry_queries_blueprint(
             query_service=container.telemetry_query_service,
-            session_service=container.session_service,
-        )
-    )
-
-    app.register_blueprint(
-        create_alerts_blueprint(
-            alert_service=container.alert_service,
-            session_service=container.session_service,
-        )
-    )
-
-    app.register_blueprint(
-        create_tickets_blueprint(
-            ticket_service=container.ticket_service,
             session_service=container.session_service,
         )
     )
