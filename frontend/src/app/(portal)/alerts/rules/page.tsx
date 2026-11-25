@@ -38,7 +38,7 @@ const emptyForm = {
 
 export default function AlertRulesPage() {
   const [rules, setRules] = useState<AlertRule[]>([]);
-  const [role, setRole] = useState<string | null>(null);
+  const [role] = useState<string | null>(() => getUserRole());
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingActive, setEditingActive] = useState(true);
@@ -47,7 +47,7 @@ export default function AlertRulesPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const isAdmin = role === "Administrator";
+  const isAdmin = role === "Administrator" || role === "Operator";
 
   const loadRules = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -68,13 +68,22 @@ export default function AlertRulesPage() {
   }, []);
 
   useEffect(() => {
-    setRole(getUserRole());
+  const controller = new AbortController();
 
-    const controller = new AbortController();
+  const initialTimer = window.setTimeout(() => {
     void loadRules(controller.signal);
+  }, 0);
 
-    return () => controller.abort();
-  }, [loadRules]);
+  const refreshTimer = window.setInterval(() => {
+    void loadRules(controller.signal);
+  }, 5_000);
+
+  return () => {
+    controller.abort();
+    window.clearTimeout(initialTimer);
+    window.clearInterval(refreshTimer);
+  };
+}, [loadRules]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -327,12 +336,13 @@ export default function AlertRulesPage() {
               </label>
 
               <label className="block text-sm font-medium text-slate-700">
-                Ngưỡng khôi phục (để trống nếu không dùng)
+                Ngưỡng khôi phục (0–100, bắt buộc)
                 <input
                   type="number"
                   min="0"
                   max="100"
                   step="0.1"
+                  required
                   value={form.recovery_threshold}
                   onChange={(e) =>
                     setForm({
@@ -344,17 +354,6 @@ export default function AlertRulesPage() {
                 />
               </label>
             </div>
-
-            {editingId && (
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={editingActive}
-                  onChange={(e) => setEditingActive(e.target.checked)}
-                />
-                Quy tắc đang hoạt động
-              </label>
-            )}
 
             <div className="flex flex-wrap gap-3">
               <button

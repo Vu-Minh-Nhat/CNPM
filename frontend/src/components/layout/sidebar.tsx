@@ -19,6 +19,16 @@ const menuItems = [
     roles: ["Administrator", "Operator", "Technician"],
   },
   {
+    label: "Cảnh báo",
+    href: "/alerts",
+    roles: ["Administrator", "Operator", "Technician"],
+  },
+  {
+    label: "Cấu hình cảnh báo",
+    href: "/alerts/rules",
+    roles: ["Administrator", "Operator", "Technician"],
+  },
+  {
     label: "Ticket bảo trì",
     href: "/tickets",
     roles: ["Operator", "Technician"],
@@ -54,9 +64,9 @@ export default function Sidebar({ role }: SidebarProps) {
 
       <nav aria-label="Điều hướng chính" className="space-y-2 p-4">
         {visibleItems.map((item) => {
-          const isActive =
-            pathname === item.href ||
-            pathname.startsWith(`${item.href}/`);
+  const isActive =
+     pathname === item.href ||
+    (item.href !== "/alerts" && pathname.startsWith(`${item.href}/`));
 
           return (
             <Link

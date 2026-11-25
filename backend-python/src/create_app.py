@@ -22,6 +22,8 @@ from src.api.docs import register_api_docs
 from src.api.error_handlers import register_error_handlers
 from src.dependency_container import build_container
 from src.infrastructure.databases.database import Database
+from src.api.controllers.alerts_controller import create_alerts_blueprint
+from src.api.controllers.tickets_controller import create_tickets_blueprint
 
 
 def create_app() -> Flask:
@@ -83,7 +85,12 @@ def create_app() -> Flask:
     )
 
     app.register_blueprint(health_bp)
-
+    app.register_blueprint(
+        create_alerts_blueprint(
+            alert_service=container.alert_service,
+            session_service=container.session_service,
+        )
+    )
     app.register_blueprint(
         create_auth_blueprint(
             login_service=container.login_service,
@@ -150,6 +157,12 @@ def create_app() -> Flask:
     app.register_blueprint(
         create_telemetry_queries_blueprint(
             query_service=container.telemetry_query_service,
+            session_service=container.session_service,
+        )
+    )
+    app.register_blueprint(
+        create_tickets_blueprint(
+            ticket_service=container.ticket_service,
             session_service=container.session_service,
         )
     )

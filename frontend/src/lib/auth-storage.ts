@@ -22,3 +22,8 @@ export function getAccessToken(): string | null {
 
   return sessionStorage.getItem("accessToken");
 }
+export function getUserRole(): string | null {
+  if (typeof window === "undefined") return null;
+
+  return sessionStorage.getItem("role");
+}

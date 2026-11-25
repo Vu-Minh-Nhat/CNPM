@@ -5,7 +5,40 @@ export interface AlertFilters {
   status?: string;
   severity?: string;
 }
+export interface AlertPage {
+  items: Alert[];
+  pagination: {
+    page: number;
+    page_size: number;
+    total: number;
+    total_pages: number;
+  };
+}
 
+export async function getAlertsPage(
+  filters: AlertFilters,
+  page: number,
+  signal?: AbortSignal,
+): Promise<AlertPage> {
+  const params = new URLSearchParams();
+
+  if (filters.status) params.set("status", filters.status);
+  if (filters.severity) params.set("severity", filters.severity);
+
+  params.set("page", String(page));
+  params.set("page_size", "20");
+
+  const data = await apiFetch<AlertPage>(
+    `/alerts?${params.toString()}`,
+    { method: "GET", signal },
+  );
+
+  if (!data || !Array.isArray(data.items) || !data.pagination) {
+    throw new Error("Dữ liệu danh sách cảnh báo không hợp lệ.");
+  }
+
+  return data;
+}
 export async function getAlerts(
   filters: AlertFilters = {},
   signal?: AbortSignal,
@@ -16,16 +49,24 @@ export async function getAlerts(
   if (filters.severity) params.set("severity", filters.severity);
 
   const query = params.toString();
-  const data = await apiFetch<Alert[]>(
-    `/alerts${query ? `?${query}` : ""}`,
-    { method: "GET", signal },
-  );
+  const data = await apiFetch<{
+  items: Alert[];
+  pagination: {
+    page: number;
+    page_size: number;
+    total: number;
+    total_pages: number;
+  };
+}>(
+  `/alerts${query ? `?${query}` : ""}`,
+  { method: "GET", signal },
+);
 
-  if (!Array.isArray(data)) {
-    throw new Error("Dữ liệu danh sách cảnh báo không hợp lệ.");
-  }
+if (!data || !Array.isArray(data.items)) {
+  throw new Error("Dữ liệu danh sách cảnh báo không hợp lệ.");
+}
 
-  return data;
+return data.items;
 }
 
 export async function getAlert(
@@ -43,7 +84,7 @@ export async function acknowledgeAlert(
 ): Promise<Alert> {
   return apiFetch<Alert>(
     `/alerts/${encodeURIComponent(alertId)}/acknowledge`,
-    { method: "PATCH" },
+    { method: "POST" },
   );
 }
 
@@ -84,11 +125,19 @@ export async function updateAlertRule(
   ruleId: string,
   payload: AlertRuleInput & { is_active: boolean },
 ): Promise<AlertRule> {
+  const {
+    is_active: isActive,
+    ...ruleData
+  } = payload;
+
+  // Bật/tắt được xử lý riêng qua setAlertRuleActive.
+  void isActive;
+
   return apiFetch<AlertRule>(
     `/alerts/rules/${encodeURIComponent(ruleId)}`,
     {
       method: "PUT",
-      body: JSON.stringify(payload),
+      body: JSON.stringify(ruleData),
     },
   );
 }
