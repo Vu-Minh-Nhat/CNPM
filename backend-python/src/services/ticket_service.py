@@ -588,12 +588,13 @@ class TicketService:
             "updated_at": ticket.updated_at.isoformat(),
         }
 
-    @staticmethod
-    def _history_response(history: TicketHistory) -> dict:
+    def _history_response(self, history: TicketHistory) -> dict:
+        actor = self._accounts.find_by_id(history.actor_id)
         return {
             "id": history.id,
             "ticket_id": history.ticket_id,
             "actor_id": history.actor_id,
+         "actor_email": actor.email if actor is not None else None,
             "action": history.action,
             "from_status": history.from_status,
             "to_status": history.to_status,

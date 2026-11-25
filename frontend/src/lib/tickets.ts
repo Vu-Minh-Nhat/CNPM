@@ -11,6 +11,7 @@ export type TicketHistory = {
   id: string;
   ticket_id: string;
   actor_id: string;
+  actor_email: string | null;
   action: string;
   from_status: string | null;
   to_status: string | null;
