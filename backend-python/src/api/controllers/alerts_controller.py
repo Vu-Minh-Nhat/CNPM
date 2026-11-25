@@ -18,7 +18,7 @@ def create_alerts_blueprint(
     blueprint = Blueprint(
         "alerts",
         __name__,
-        url_prefix="/alerts",
+        url_prefix  ="/alerts",
     )
 
     @blueprint.errorhandler(SQLAlchemyError)
@@ -128,5 +128,65 @@ def create_alerts_blueprint(
         )
 
         return jsonify(result), 200
+    @blueprint.get("/rules")
+    @require_auth(
+        session_service=session_service,
+        allowed_roles=tuple(Role),
+    )
+    def list_rules():
+        return jsonify(alert_service.list_rules()), 200
 
+    @blueprint.post("/rules")
+    @require_auth(
+        session_service=session_service,
+        allowed_roles=(Role.ADMINISTRATOR, Role.OPERATOR),
+    )
+    def create_rule():
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            raise ValidationError("Dữ liệu Alert Rule phải là object.")
+
+        return jsonify(alert_service.create_rule(data)), 201
+
+    @blueprint.put("/rules/<rule_id>")
+    @require_auth(
+        session_service=session_service,
+        allowed_roles=(Role.ADMINISTRATOR, Role.OPERATOR),
+    )
+    def update_rule(rule_id):
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            raise ValidationError("Dữ liệu Alert Rule phải là object.")
+
+        # Trạng thái bật/tắt được xử lý qua endpoint /active.
+        if "is_active" in data:
+            raise ValidationError("Dùng endpoint /active để bật hoặc tắt rule.")
+
+        return jsonify(alert_service.update_rule(rule_id, data)), 200
+
+    @blueprint.patch("/rules/<rule_id>/active")
+    @require_auth(
+        session_service=session_service,
+        allowed_roles=(Role.ADMINISTRATOR, Role.OPERATOR),
+    )
+    def set_rule_active(rule_id):
+        data = request.get_json(silent=True)
+
+        if (
+            not isinstance(data, dict)
+            or set(data) != {"is_active"}
+            or type(data["is_active"]) is not bool
+        ):
+            raise ValidationError(
+                "Cần cung cấp duy nhất trường is_active dạng boolean."
+            )
+
+        if data["is_active"]:
+            result = alert_service.enable_rule(rule_id)
+        else:
+            result = alert_service.disable_rule(rule_id)
+
+        return jsonify(result), 200
     return blueprint

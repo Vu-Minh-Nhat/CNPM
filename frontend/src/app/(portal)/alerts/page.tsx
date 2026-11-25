@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { acknowledgeAlert, getAlerts } from "@/lib/alerts";
+import { acknowledgeAlert, getAlertsPage } from "@/lib/alerts";
 import { getUserRole } from "@/lib/auth-storage";
 import type { Alert } from "@/types/alert";
-
+import Link from "next/link";
 const statusLabels: Record<string, string> = {
   FIRING: "Đang phát sinh",
   ACKNOWLEDGED: "Đã xác nhận",
@@ -35,32 +34,39 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [role, setRole] = useState<string | null>(null);
+  const [role] = useState<string | null>(() => getUserRole());
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const canAcknowledge =
     role === "Administrator" || role === "Operator";
-
+  const canCreateTicket = role === "Operator";
   const loadAlerts = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError("");
 
     try {
-      const data = await getAlerts(
-        {
-          status: status || undefined,
-          severity: severity || undefined,
-        },
-        signal,
-      );
+  const data = await getAlertsPage(
+  {
+    status: status || undefined,
+    severity: severity || undefined,
+  },
+  page,
+  signal,
+);
 
-      if (!signal?.aborted) {
-        setAlerts(data);
-        setSelectedAlert((current) =>
-          current
-            ? data.find((item) => item.id === current.id) ?? null
-            : null,
-        );
-      }
+if (!signal?.aborted) {
+  setAlerts(data.items);
+  setTotal(data.pagination.total);
+  setTotalPages(data.pagination.total_pages);
+
+  setSelectedAlert((current) =>
+    current
+      ? data.items.find((item) => item.id === current.id) ?? null
+      : null,
+  );
+}
     } catch (err) {
       if (!signal?.aborted) {
         setError(
@@ -72,16 +78,25 @@ export default function AlertsPage() {
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [status, severity]);
+  }, [page, severity, status]);
 
-  useEffect(() => {
-    setRole(getUserRole());
+ useEffect(() => {
+  const controller = new AbortController();
 
-    const controller = new AbortController();
+  const initialTimer = window.setTimeout(() => {
     void loadAlerts(controller.signal);
+  }, 0);
 
-    return () => controller.abort();
-  }, [loadAlerts]);
+  const refreshTimer = window.setInterval(() => {
+    void loadAlerts(controller.signal);
+  }, 5_000);
+
+  return () => {
+    controller.abort();
+    window.clearTimeout(initialTimer);
+    window.clearInterval(refreshTimer);
+  };
+}, [loadAlerts]);
 
   async function handleAcknowledge(alertId: string) {
     setProcessingId(alertId);
@@ -136,21 +151,21 @@ export default function AlertsPage() {
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Tổng cảnh báo</p>
+          <p className="text-sm text-gray-500">Tổng trên trang</p>
           <p className="mt-2 text-3xl font-bold text-gray-900">
             {alerts.length}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Đang phát sinh</p>
+          <p className="text-sm text-gray-500">Đang phát sinh trên trang</p>
           <p className="mt-2 text-3xl font-bold text-red-600">
             {firingCount}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Đã xác nhận</p>
+          <p className="text-sm text-gray-500">Đã xác nhận trên trang</p>
           <p className="mt-2 text-3xl font-bold text-green-600">
             {alerts.filter(
               (item) => item.status === "ACKNOWLEDGED",
@@ -167,7 +182,10 @@ export default function AlertsPage() {
 
           <select
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+          }}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             aria-label="Lọc theo trạng thái"
           >
@@ -179,7 +197,10 @@ export default function AlertsPage() {
 
           <select
             value={severity}
-            onChange={(event) => setSeverity(event.target.value)}
+            onChange={(event) => {
+              setSeverity(event.target.value);
+              setPage(1);
+            }}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
             aria-label="Lọc theo mức độ"
           >
@@ -271,6 +292,33 @@ export default function AlertsPage() {
             </table>
           </div>
         )}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+  <p className="text-gray-600">
+    {total === 0
+      ? "Không có cảnh báo."
+      : `Trang ${page} / ${totalPages} · ${total} cảnh báo phù hợp`}
+  </p>
+
+  <div className="flex gap-2">
+    <button
+      type="button"
+      onClick={() => setPage((current) => Math.max(1, current - 1))}
+      disabled={loading || page <= 1}
+      className="rounded-lg border px-3 py-2 disabled:opacity-50"
+    >
+      Trang trước
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setPage((current) => current + 1)}
+      disabled={loading || page >= totalPages}
+      className="rounded-lg border px-3 py-2 disabled:opacity-50"
+    >
+      Trang sau
+    </button>
+  </div>
+</div>
       </section>
 
       {selectedAlert && (
@@ -287,7 +335,16 @@ export default function AlertsPage() {
               Đóng
             </button>
           </div>
-
+{canCreateTicket && (
+  <div className="mb-4">
+    <Link
+      href={`/tickets?nodeId=${encodeURIComponent(selectedAlert.node_id)}&alertId=${encodeURIComponent(selectedAlert.id)}`}
+      className="inline-block rounded-lg border border-cyan-700 px-3 py-2 text-sm font-semibold text-cyan-800 hover:bg-cyan-50"
+    >
+      Tạo ticket từ cảnh báo
+    </Link>
+  </div>
+)}
           <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <dt className="text-sm text-gray-500">Nội dung</dt>

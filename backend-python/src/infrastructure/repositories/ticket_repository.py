@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
+
 from sqlalchemy import select
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
@@ -108,7 +109,10 @@ class SqlAlchemyTicketRepository(TicketRepository):
                     version=ticket.version,
                 )
 
-                session.add_all((model, self._history_model(history)))
+                session.add(model)
+                session.flush()
+
+                session.add(self._history_model(history))
                 session.commit()
 
                 return self._to_domain(model)

@@ -116,22 +116,23 @@ export default function TicketsPage() {
     setError("");
   }
 
-  useEffect(() => {
-    const controller = new AbortController();
+useEffect(() => {
+  const controller = new AbortController();
 
-    async function loadPage(): Promise<void> {
-      try {
-        const currentUser = await getCurrentUser();
-        if (controller.signal.aborted) return;
+  async function loadPage(): Promise<void> {
+    try {
+      const currentUser = await getCurrentUser();
+      if (controller.signal.aborted) return;
 
-        const currentRole = currentUser?.role;
-        if (typeof currentRole !== "string") {
-          throw new Error("Không xác định được vai trò tài khoản.");
-        }
-        setRole(currentRole);
+      const currentRole = currentUser?.role;
+      if (typeof currentRole !== "string") {
+        throw new Error("Không xác định được vai trò tài khoản.");
+      }
+      setRole(currentRole);
 
-        const isCurrentUserOperator = currentRole === "Operator";
-        const [ticketItems, assetItems, activeTechnicians, alertItems] = await Promise.all([
+      const isCurrentUserOperator = currentRole === "Operator";
+      const [ticketItems, assetItems, activeTechnicians, alertItems] =
+        await Promise.all([
           getTickets(controller.signal),
           getAssets(controller.signal),
           isCurrentUserOperator
@@ -141,43 +142,67 @@ export default function TicketsPage() {
             ? getTicketAlerts(controller.signal)
             : Promise.resolve<TicketAlert[]>([]),
         ]);
-        if (controller.signal.aborted) return;
-        setTickets(ticketItems);
-        setAssets(assetItems);
-        if (isCurrentUserOperator) {
-          setTechnicians(activeTechnicians);
-          setAlerts(alertItems);
-        }
 
-        if (ticketItems.length > 0) {
-          setSelectedTicketId(ticketItems[0].id);
-          const detail = await getTicket(
-            ticketItems[0].id,
-            controller.signal,
-          );
-          if (controller.signal.aborted) return;
-          setSelectedTicket(detail);
-          setProgress(detail.progress);
-          setWorkNotes(detail.work_notes ?? "");
-          setEvidence(detail.evidence ?? "");
-          setResult(detail.result ?? "");
-          setAssignedTo(detail.assigned_to ?? "");
-        }
-      } catch (loadError) {
-        if (!controller.signal.aborted) {
-          setError(getErrorMessage(loadError));
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
+      if (controller.signal.aborted) return;
+
+      setTickets(ticketItems);
+      setAssets(assetItems);
+
+      if (isCurrentUserOperator) {
+        setTechnicians(activeTechnicians);
+        setAlerts(alertItems);
+
+        const query = new URLSearchParams(window.location.search);
+        const requestedNodeId = query.get("nodeId") ?? "";
+        const requestedAlertId = query.get("alertId") ?? "";
+
+        const requestedAlert = alertItems.find(
+          (alert) => alert.id === requestedAlertId,
+        );
+
+        if (requestedAlert) {
+          setAlertId(requestedAlert.id);
+          setNodeId(requestedAlert.node_id);
+        } else if (
+          requestedNodeId &&
+          assetItems.some((asset) => asset.id === requestedNodeId)
+        ) {
+          setNodeId(requestedNodeId);
         }
       }
+
+      if (ticketItems.length > 0) {
+        setSelectedTicketId(ticketItems[0].id);
+
+        const detail = await getTicket(
+          ticketItems[0].id,
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) return;
+
+        setSelectedTicket(detail);
+        setProgress(detail.progress);
+        setWorkNotes(detail.work_notes ?? "");
+        setEvidence(detail.evidence ?? "");
+        setResult(detail.result ?? "");
+        setAssignedTo(detail.assigned_to ?? "");
+      }
+    } catch (loadError) {
+      if (!controller.signal.aborted) {
+        setError(getErrorMessage(loadError));
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
+  }
 
-    void loadPage();
-    return () => controller.abort();
-  }, []);
+  void loadPage();
 
+  return () => controller.abort();
+}, []);
   async function runTicketAction(
     ticketId: string,
     successMessage: string,
