@@ -49,7 +49,7 @@ export const ScannerScreen: React.FC<ScannerScreenProps> = ({ onOpenNode }) => {
 
   return (
     <View style={styles.root}>
-      <View style={[StyleSheet.absoluteFillObject, styles.viewport]}>
+      <View style={[StyleSheet.absoluteFill, styles.viewport]}>
         <View style={styles.headerRow}>
           <Text style={styles.headerText}>AR SCANNER • {email ?? "Operator"}</Text>
           <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
@@ -143,3 +143,4 @@ const styles = StyleSheet.create({
   subBtn: { backgroundColor: "#334155", paddingHorizontal: 10, justifyContent: "center", borderRadius: 8 },
   actionText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
 });
+

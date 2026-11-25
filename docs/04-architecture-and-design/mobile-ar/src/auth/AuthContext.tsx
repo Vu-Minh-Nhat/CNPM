@@ -28,7 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const baseUrl = (
       apiBaseUrl ??
       process.env.EXPO_PUBLIC_API_BASE_URL ??
-      "http://192.168.1.80:5002"
+      "http://127.0.0.1:5002"
     ).replace(/\/+$/, "");
 
     try {
@@ -38,8 +38,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email: trimmedEmail, password }),
       });
       if (res.ok) {
-        const body = (await res.json()) as { access_token?: string; token?: string };
-        setToken(body.access_token ?? body.token ?? "session-token");
+        const body = (await res.json()) as {
+          accessToken?: string;
+          access_token?: string;
+          token?: string;
+        };
+        setToken(body.accessToken ?? body.access_token ?? body.token ?? "session-token");
         setEmail(trimmedEmail);
         return;
       }
