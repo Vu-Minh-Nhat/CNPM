@@ -8,10 +8,8 @@ import psutil
 import requests
 
 from config import (
+    AGENT_KEY,
     BACKEND_URL,
-    CA_CERT_PATH,
-    CLIENT_CERT_PATH,
-    CLIENT_KEY_PATH,
     MAX_RETRIES,
     NODE_ID,
     REQUEST_TIMEOUT_SECONDS,
@@ -31,7 +29,6 @@ logger = logging.getLogger("collector-agent")
 
 def collect_metrics() -> dict:
     """Collect CPU, RAM and disk usage."""
-
     disk_path = "C:\\" if platform.system() == "Windows" else "/"
 
     return {
@@ -51,11 +48,11 @@ def collect_metrics() -> dict:
 
 
 def send_telemetry(payload: dict) -> bool:
-    """Send telemetry to Backend using mutual TLS."""
-
+    """Send telemetry to Backend with limited retries."""
     url = f"{BACKEND_URL}{TELEMETRY_ENDPOINT}"
 
     headers = {
+        "X-Agent-Key": AGENT_KEY,
         "Content-Type": "application/json",
     }
 
@@ -65,11 +62,6 @@ def send_telemetry(payload: dict) -> bool:
                 url,
                 json=payload,
                 headers=headers,
-                cert=(
-                    str(CLIENT_CERT_PATH),
-                    str(CLIENT_KEY_PATH),
-                ),
-                verify=str(CA_CERT_PATH),
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
 
@@ -117,7 +109,6 @@ def send_telemetry(payload: dict) -> bool:
 
 def build_payload() -> dict:
     """Create one telemetry message."""
-
     metrics = collect_metrics()
 
     return {
@@ -129,45 +120,12 @@ def build_payload() -> dict:
 
 
 def validate_config() -> None:
-    """Validate required configuration and TLS certificates."""
-
+    """Validate required configuration."""
     if not NODE_ID:
-        raise RuntimeError("NODE_ID chua duoc cau hinh.")
+        raise RuntimeError("NODE_ID chưa được cấu hình.")
 
-    if not BACKEND_URL.startswith("https://"):
-        raise RuntimeError(
-            "BACKEND_URL phai su dung HTTPS."
-        )
-
-    required_files = {
-        "Client certificate": CLIENT_CERT_PATH,
-        "Client private key": CLIENT_KEY_PATH,
-        "CA certificate": CA_CERT_PATH,
-    }
-
-    for name, path in required_files.items():
-        if not path.is_file():
-            raise RuntimeError(
-                f"{name} khong ton tai: {path}"
-            )
-
-    if MAX_RETRIES < 1:
-        raise RuntimeError("MAX_RETRIES phai lon hon hoac bang 1.")
-
-    if SEND_INTERVAL_SECONDS <= 0:
-        raise RuntimeError(
-            "SEND_INTERVAL_SECONDS phai lon hon 0."
-        )
-
-    if REQUEST_TIMEOUT_SECONDS <= 0:
-        raise RuntimeError(
-            "REQUEST_TIMEOUT_SECONDS phai lon hon 0."
-        )
-
-    if RETRY_DELAY_SECONDS < 0:
-        raise RuntimeError(
-            "RETRY_DELAY_SECONDS khong duoc am."
-        )
+    if not AGENT_KEY:
+        raise RuntimeError("AGENT_KEY chưa được cấu hình.")
 
 
 def main() -> None:
