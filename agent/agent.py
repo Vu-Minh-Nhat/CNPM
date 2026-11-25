@@ -1,4 +1,4 @@
-import logging
+﻿import logging
 import platform
 import time
 import uuid
@@ -9,9 +9,6 @@ import requests
 
 from config import (
     BACKEND_URL,
-    CA_CERT_PATH,
-    CLIENT_CERT_PATH,
-    CLIENT_KEY_PATH,
     MAX_RETRIES,
     NODE_ID,
     REQUEST_TIMEOUT_SECONDS,
@@ -57,6 +54,7 @@ def send_telemetry(payload: dict) -> bool:
 
     headers = {
         "Content-Type": "application/json",
+        "X-Agent-Id": NODE_ID,
     }
 
     for attempt in range(1, MAX_RETRIES + 1):
@@ -65,11 +63,6 @@ def send_telemetry(payload: dict) -> bool:
                 url,
                 json=payload,
                 headers=headers,
-                cert=(
-                    str(CLIENT_CERT_PATH),
-                    str(CLIENT_KEY_PATH),
-                ),
-                verify=str(CA_CERT_PATH),
                 timeout=REQUEST_TIMEOUT_SECONDS,
             )
 
@@ -134,22 +127,8 @@ def validate_config() -> None:
     if not NODE_ID:
         raise RuntimeError("NODE_ID chua duoc cau hinh.")
 
-    if not BACKEND_URL.startswith("https://"):
-        raise RuntimeError(
-            "BACKEND_URL phai su dung HTTPS."
-        )
-
-    required_files = {
-        "Client certificate": CLIENT_CERT_PATH,
-        "Client private key": CLIENT_KEY_PATH,
-        "CA certificate": CA_CERT_PATH,
-    }
-
-    for name, path in required_files.items():
-        if not path.is_file():
-            raise RuntimeError(
-                f"{name} khong ton tai: {path}"
-            )
+    if not (BACKEND_URL.startswith("http://") or BACKEND_URL.startswith("https://")):
+        raise RuntimeError("BACKEND_URL phai su dung http:// hoac https://.")
 
     if MAX_RETRIES < 1:
         raise RuntimeError("MAX_RETRIES phai lon hon hoac bang 1.")
@@ -206,3 +185,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
