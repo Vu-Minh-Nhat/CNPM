@@ -1,84 +1,57 @@
-﻿# AR-IMMS — Web Management Portal
+# AR-IMMS — Web Management Portal
 
-Web Portal của AR-IMMS được phát triển bằng Next.js, React và TypeScript,
-kết nối với Backend Python Flask.
+Web Portal sử dụng Next.js, React và TypeScript; kết nối tới Backend Flask.
 
-## 1. Chức năng hiện có
+## 1. Chức năng
 
-- Đăng nhập bằng tài khoản hệ thống.
-- Xác minh phiên đăng nhập qua JWT.
-- Header hiển thị email, vai trò và nút đăng xuất.
-- Sidebar và điều hướng theo vai trò.
-- Trang Dashboard.
-- Danh sách tài sản Node/Server.
-- Tra cứu và xử lý Ticket bảo trì theo vai trò Operator/Technician.
-- Tìm kiếm theo mã, tên, serial hoặc vị trí.
-- Lọc tài sản theo Site và xóa bộ lọc.
-- Xem chi tiết Node cùng Rack, Room, Site và Workload.
-- Trang không có quyền và trang không tìm thấy.
+- Đăng nhập và đăng xuất.
+- Xem Dashboard và danh sách tài sản.
+- Xem Node, Rack, Room, Site, Workload và telemetry.
+- Xem, lọc và xác nhận cảnh báo theo quyền.
+- Xem và cấu hình Alert Rule theo quyền.
+- Tạo Ticket từ cảnh báo, phân công và xử lý Ticket theo vai trò.
 
-Mức độ hoàn thiện Dashboard và quản trị tài khoản được cập nhật
-theo các task tương ứng trên Jira.
+Phân quyền thực tế luôn được kiểm tra ở backend; việc ẩn nút trên giao diện
+không thay thế kiểm tra quyền API.
 
-## 2. Yêu cầu môi trường
+## 2. Chuẩn bị
 
-- Node.js và npm tương thích với phiên bản Next.js trong package.json.
-- Backend Flask đã được cấu hình và khởi động.
-- PostgreSQL đã có dữ liệu phù hợp để kiểm tra.
-- Có tài khoản đăng nhập hợp lệ.
+- Cài Node.js và npm phù hợp với dự án.
+- Backend đã cấu hình, migration, seed và đang chạy.
+- Có tài khoản đăng nhập đã được seed.
 
-Xem [hướng dẫn Backend Python](../backend-python/README.md)
-để cài đặt Backend, chạy migration và seed.
+Xem [README Backend](../backend-python/README.md).
 
 ## 3. Cài đặt
 
-Tại thư mục gốc repository:
+Tại thư mục gốc dự án:
 
 ```powershell
 cd frontend
 npm ci
 ```
 
-Lệnh `npm ci` cài dependencies theo `package-lock.json`.
+## 4. Cấu hình Backend URL
 
-## 4. Cấu hình môi trường
-
-Nếu chưa có file `.env.local`, tạo từ mẫu:
+Tạo file cá nhân:
 
 ```powershell
 Copy-Item .env.example .env.local
+notepad .env.local
 ```
 
-Cấu hình địa chỉ Backend:
+Ví dụ backend chạy HTTP cổng 5002:
 
-```dotenv
+```env
 NEXT_PUBLIC_API_URL=http://localhost:5002
 ```
 
-Nếu Backend đang chạy ở cổng khác, thay bằng địa chỉ thực tế.
-Ví dụ khi kiểm tra Backend tại cổng 5002:
+Địa chỉ này phải khớp backend thực tế. Backend cần cho phép origin frontend,
+ví dụ `http://localhost:3001`, trong `CORS_ORIGINS`.
 
-```dotenv
-NEXT_PUBLIC_API_URL=http://localhost:5002
-```
+Khởi động lại frontend sau khi thay `.env.local`.
 
-Sau khi thay đổi cấu hình, khởi động lại Frontend.
-Nếu chạy bản đã build, cần build lại với cấu hình mới.
-
-Biến `NEXT_PUBLIC_API_URL` có thể xuất hiện trong mã trình duyệt.
-Không đưa mật khẩu database hoặc khóa JWT vào biến này.
-
-Backend cần cho phép origin Frontend, ví dụ:
-
-```dotenv
-CORS_ORIGINS=http://localhost:3001,http://localhost:3002
-```
-
-Biến `CORS_ORIGINS` được cấu hình ở Backend.
-
-## 5. Chạy khi phát triển
-
-Tại thư mục `frontend`:
+## 5. Chạy Web Portal
 
 ```powershell
 npm run dev -- --port 3001
@@ -90,200 +63,59 @@ Mở:
 http://localhost:3001
 ```
 
-Giữ Backend và Frontend chạy trong hai Terminal riêng.
+Giữ backend và frontend chạy trong hai terminal riêng.
 
-Địa chỉ Backend mặc định:
+## 6. Đường dẫn chính
 
-| Thành phần | Địa chỉ |
+| Đường dẫn | Nội dung |
 | --- | --- |
-| Backend Flask | http://localhost:5002 |
-| Kiểm tra hoạt động | http://localhost:5002/health |
-| Swagger UI | http://localhost:5002/docs/ |
-| OpenAPI JSON | http://localhost:5002/openapi.json |
+| `/` | Đăng nhập |
+| `/dashboard` | Dashboard |
+| `/assets` | Tra cứu tài sản |
+| `/alerts` | Danh sách cảnh báo |
+| `/alerts/rules` | Cấu hình quy tắc cảnh báo |
+| `/tickets` | Ticket bảo trì |
+| `/users` | Quản lý tài khoản |
+| `/forbidden` | Thông báo không đủ quyền |
 
-## 6. Tài khoản mẫu
+Theo cấu hình hiện tại, Administrator và Operator được quản lý Alert Rule;
+Technician chỉ xem. Quyền Ticket được kiểm tra theo vai trò ở backend.
 
-Khi Backend đã seed thành công:
+## 7. Kiểm tra Alert và Ticket
 
-| Email | Vai trò |
-| --- | --- |
-| admin@arimms.local | Administrator |
-| operator@arimms.local | Operator |
-| tech@arimms.local | Technician |
+1. Đăng nhập Operator.
+2. Mở `/alerts`.
+3. Chọn chi tiết một cảnh báo.
+4. Nhấn **Tạo ticket từ cảnh báo**.
+5. Kiểm tra Node và Alert được điền sẵn.
+6. Nhập thông tin và tạo Ticket.
+7. Kiểm tra Ticket và lịch sử thao tác.
 
-Dùng mật khẩu đã đặt khi seed database mà Backend đang kết nối.
-Không có mật khẩu cố định chung cho mọi môi trường.
+Để có cảnh báo thật, cần Agent gửi telemetry mới, rule đang bật và Alert
+Worker đang chạy. Không coi giao diện rỗng là lỗi nếu backend không có cảnh báo.
 
-Chạy lại seed không tự thay đổi mật khẩu tài khoản đã tồn tại.
-
-## 7. Cấu trúc mã nguồn
-
-```text
-src/
-├── app/
-│   ├── (portal)/
-│   │   ├── assets/page.tsx
-│   │   ├── dashboard/page.tsx
-│   ├── tickets/page.tsx
-│   │   ├── forbidden/page.tsx
-│   │   ├── users/page.tsx
-│   │   └── layout.tsx
-│   ├── globals.css
-│   ├── layout.tsx
-│   ├── not-found.tsx
-│   └── page.tsx
-├── components/
-│   ├── assets/
-│   └── layout/
-├── contexts/
-├── lib/
-│   ├── api-client.ts
-│   ├── assets.ts
-│   ├── auth-storage.ts
-│   └── auth.ts
-└── types/
-```
-
-- `app/`: các trang và layout theo Next.js App Router.
-- `components/`: thành phần giao diện dùng chung.
-- `contexts/`: trạng thái dùng chung của ứng dụng.
-- `lib/`: quản lý phiên, gọi API và các hàm hỗ trợ.
-- `types/`: kiểu dữ liệu dùng chung.
-
-Nhóm `(portal)` tổ chức layout, không xuất hiện trong URL.
-
-## 8. Điều hướng và phân quyền
-
-| Đường dẫn | Quyền truy cập giao diện |
-| --- | --- |
-| `/` | Trang đăng nhập |
-| `/dashboard` | Administrator, Operator, Technician |
-| `/assets` | Administrator, Operator, Technician |
-| `/tickets` | Operator, Technician |
-| `/users` | Administrator |
-| `/forbidden` | Trang thông báo không có quyền |
-
-- Administrator thấy menu Quản lý tài khoản.
-- Operator và Technician không thấy menu Quản lý tài khoản.
-- Người dùng chưa đăng nhập cần đăng nhập trước khi vào Portal.
-- Header hiển thị thông tin tài khoản được xác minh qua `/auth/me`.
-- Đăng xuất xóa thông tin phiên ở trình duyệt.
-
-Ẩn menu trên Frontend không thay thế kiểm tra quyền ở Backend.
-Các API vẫn phải xác thực JWT và kiểm tra RBAC.
-
-## 9. Trang tài sản — AI-41
-
-Trang `/assets` sử dụng:
-
-```http
-GET /assets
-Authorization: Bearer <accessToken>
-```
-
-Chức năng:
-
-- Hiển thị mã Node, tên, serial và vị trí.
-- Tìm kiếm trên dữ liệu đã tải.
-- Lọc theo Site.
-- Xóa từ khóa và bộ lọc.
-- Mở, đóng khung chi tiết.
-- Hiển thị quan hệ Rack → Room → Site và danh sách Workload.
-- Xử lý trạng thái đang tải, lỗi, dữ liệu thiếu và kết quả rỗng.
-
-Chi tiết được lấy từ danh sách đã tải.
-Không gọi endpoint chi tiết `/assets/{id}`.
-
-Phạm vi AI-41 không bao gồm tạo, sửa hoặc xóa tài sản.
-
-Dữ liệu mẫu để kiểm tra:
-
-```text
-DEMO-SITE
-└── ROOM-01
-    └── RACK-01
-        └── DEMO-NODE-01
-            └── DEMO-WORKLOAD-01
-```
-
-## 10. Kiểm tra và build
-
-Tại thư mục `frontend`:
+## 8. Lint và build
 
 ```powershell
 npm run lint
 npm run build
 ```
 
-Chạy bản sau khi build:
+Chạy bản production build để kiểm tra cục bộ:
 
 ```powershell
 npm run start -- --port 3001
 ```
 
-Dừng Frontend phát triển đang dùng cổng 3001 trước khi chạy bản này.
+Dừng dev server đang dùng cổng 3001 trước khi chạy lệnh này.
 
-## 11. Kiểm tra tích hợp
+## 9. Xử lý lỗi
 
-Thực hiện sau khi cấu hình Backend và Frontend:
+- **Không kết nối backend:** kiểm tra backend, `/health`, `NEXT_PUBLIC_API_URL`
+  và CORS; sau khi đổi `.env.local`, khởi động lại frontend.
+- **401:** kiểm tra phiên đăng nhập và đăng nhập lại.
+- **403:** tài khoản không đủ quyền cho thao tác.
+- **Không có cảnh báo:** kiểm tra Node, telemetry mới, rule đang bật và worker.
+- **Cổng 3001 đã dùng:** dừng tiến trình cũ hoặc chọn cổng khác và cập nhật CORS.
 
-- Đăng nhập bằng tài khoản hợp lệ.
-- Kiểm tra email và vai trò trên Header.
-- Kiểm tra menu theo vai trò.
-- Mở Dashboard và Tài sản.
-- Tìm kiếm DEMO-NODE-01.
-- Tìm kiếm mã không tồn tại và kiểm tra thông báo rỗng.
-- Chọn Site và xóa bộ lọc.
-- Mở chi tiết, kiểm tra Rack, Room, Site và Workload.
-- Đóng khung chi tiết.
-- Đăng xuất và kiểm tra trang được bảo vệ.
-- Kiểm tra trang không có quyền và trang 404.
-
-Chỉ ghi nhận PASS cho những trường hợp đã chạy thực tế.
-
-## 12. Xử lý lỗi thường gặp
-
-### Không kết nối được Backend
-
-- Kiểm tra Backend đang chạy.
-- Kiểm tra `NEXT_PUBLIC_API_URL`.
-- Mở `/health` của Backend để xác nhận có phản hồi.
-- Kiểm tra CORS cho đúng origin Frontend.
-- Khởi động lại Frontend sau khi sửa `.env.local`.
-
-### Đăng nhập trả về 401
-
-- Kiểm tra email và mật khẩu Web AR-IMMS.
-- Kiểm tra Backend đang kết nối database nào.
-- Mật khẩu Web khác mật khẩu PostgreSQL.
-- Nếu phiên hết hạn, đăng nhập lại.
-
-### API trả về 403
-
-Tài khoản đã được xác thực nhưng không đủ quyền.
-Kiểm tra vai trò và quyền của endpoint tương ứng.
-
-### Cổng 3001 đang được sử dụng
-
-Dừng tiến trình Frontend cũ hoặc chọn cổng khác.
-Nếu đổi cổng Frontend, cập nhật CORS ở Backend cho phù hợp.
-
-## 13. Quy ước làm việc
-
-- Component dùng tên PascalCase.
-- File component ưu tiên kebab-case.
-- Trang và layout tuân theo quy ước Next.js.
-- Các trang Portal dùng layout chung.
-- Địa chỉ Backend lấy từ biến môi trường.
-- Cập nhật tài liệu khi thay đổi API hoặc cấu hình.
-- Commit `package.json`, `package-lock.json` và `.env.example`.
-- Không commit `.env.local`, `node_modules/`, `.next/`
-  hoặc thông tin bí mật.
-
-## 14. Phạm vi phát triển tiếp
-
-Các màn hình telemetry, cảnh báo, audit và báo cáo
-được phát triển theo kế hoạch Jira.
-
-Việc chạy được giao diện cục bộ chưa xác nhận hệ thống đã
-được triển khai production.
+Không commit `.env.local`, `node_modules/` hoặc `.next/`.
