@@ -4,6 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
+from src.api.controllers.audit_controller import create_audit_blueprint
 
 from src.api.controllers.assets_controller import create_assets_blueprint
 from src.api.controllers.auth_controller import create_auth_blueprint
@@ -65,6 +66,12 @@ def create_app() -> Flask:
             os.getenv("TELEMETRY_POLL_INTERVAL_SECONDS", "5")
         ),
     )
+    app.register_blueprint(
+    create_audit_blueprint(
+        session_service=container.session_service,
+        session_factory=database.create_session,
+    )
+)
 
     app.extensions["database"] = database
     app.extensions["container"] = container

@@ -1,6 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -8,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { CameraView } from "expo-camera";
+
+import { apiRequest } from "../api/apiClient";
 import { useAuth } from "../auth/AuthContext";
 import { useMarkerScanner } from "../scanner/useMarkerScanner";
 import { MarkerLookupResponse } from "../types/domain";
@@ -16,9 +19,33 @@ interface ScannerScreenProps {
   onOpenNode: (lookup: MarkerLookupResponse) => void;
 }
 
+interface TelemetryMetrics {
+  cpu_percent: number;
+  memory_percent: number;
+  disk_percent: number;
+  measured_at: string;
+}
+
+interface LatestTelemetryResponse {
+  latest: TelemetryMetrics | null;
+  monitoring: {
+    connection_status: string;
+    data_status: string;
+  };
+}
+
 export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
   const { user, logout } = useAuth();
+
   const [manualCode, setManualCode] = useState("");
+  const [scannedNode, setScannedNode] =
+    useState<MarkerLookupResponse | null>(null);
+
+  const [telemetry, setTelemetry] =
+    useState<LatestTelemetryResponse | null>(null);
+
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
+  const [telemetryError, setTelemetryError] = useState("");
 
   const {
     permission,
@@ -31,8 +58,62 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
     handleBarcodeScanned,
     lookupMarker,
     retryLastScan,
+    resumeScanning,
     dismissFeedback,
-  } = useMarkerScanner(onOpenNode);
+  } = useMarkerScanner(setScannedNode);
+
+  const nodeId = scannedNode?.node.id;
+
+  useEffect(() => {
+    if (!nodeId) {
+      setTelemetry(null);
+      setTelemetryLoading(false);
+      setTelemetryError("");
+      return;
+    }
+
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    async function loadTelemetry() {
+      try {
+        const data = await apiRequest<LatestTelemetryResponse>(
+          `/telemetry/nodes/${encodeURIComponent(nodeId!)}/latest`,
+        );
+
+        if (!active) return;
+
+        setTelemetry(data);
+        setTelemetryError("");
+      } catch (error) {
+        if (!active) return;
+
+        setTelemetryError(
+          error instanceof Error
+            ? error.message
+            : "Không thể cập nhật dữ liệu giám sát.",
+        );
+      } finally {
+        if (active) {
+          setTelemetryLoading(false);
+          timer = setTimeout(() => void loadTelemetry(), 5000);
+        }
+      }
+    }
+
+    setTelemetry(null);
+    setTelemetryError("");
+    setTelemetryLoading(true);
+    void loadTelemetry();
+
+    return () => {
+      active = false;
+
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [nodeId]);
 
   const onBarcodeEvent = useCallback(
     ({ data }: { data?: string }) => {
@@ -44,10 +125,15 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
   );
 
   const handleManualLookup = () => {
-    if (!manualCode.trim()) {
-      return;
-    }
+    if (!manualCode.trim()) return;
+
     void lookupMarker(manualCode);
+  };
+
+  const handleScanAnother = () => {
+    setScannedNode(null);
+    setManualCode("");
+    resumeScanning();
   };
 
   const canShowSettingsButton =
@@ -56,13 +142,17 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerInfo}>
           <Text style={styles.headerTitle}>Quét Marker thiết bị</Text>
           <Text style={styles.headerSub}>
             {user?.email} ({user?.role})
           </Text>
         </View>
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => void logout()}>
+
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={() => void logout()}
+        >
           <Text style={styles.logoutText}>Đăng xuất</Text>
         </TouchableOpacity>
       </View>
@@ -79,33 +169,110 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
               isResolving || isNavigating ? undefined : onBarcodeEvent
             }
           />
-          <View style={styles.overlayHint}>
-            <Text style={styles.hintText}>
-              {isResolving
-                ? "Đang tra cứu Marker..."
-                : "Đưa Marker vào khung quét"}
-            </Text>
-          </View>
+
+          {scannedNode ? (
+            <View style={styles.nodeOverlay}>
+              <ScrollView
+                style={styles.overlayScroll}
+                nestedScrollEnabled
+              >
+                <Text style={styles.overlayTitle}>
+                  {scannedNode.node.code ?? scannedNode.node.name}
+                </Text>
+
+                <Text style={styles.overlayText}>
+                  {scannedNode.node.site ?? "Chưa có site"} →{" "}
+                  {scannedNode.node.room ?? "Chưa có room"} →{" "}
+                  {scannedNode.node.rack ?? "Chưa có rack"}
+                </Text>
+
+                {telemetryLoading ? (
+                  <Text style={styles.overlayText}>
+                    Đang tải dữ liệu giám sát...
+                  </Text>
+                ) : telemetry?.latest ? (
+                  <>
+                    <Text style={styles.metricsText}>
+                      CPU: {telemetry.latest.cpu_percent}% · RAM:{" "}
+                      {telemetry.latest.memory_percent}% · Disk:{" "}
+                      {telemetry.latest.disk_percent}%
+                    </Text>
+
+                    <Text style={styles.overlayText}>
+                      Kết nối: {telemetry.monitoring.connection_status}
+                      {" · "}Dữ liệu: {telemetry.monitoring.data_status}
+                    </Text>
+                  </>
+                ) : !telemetryError ? (
+                  <Text style={styles.overlayText}>
+                    Node chưa có mẫu telemetry.
+                  </Text>
+                ) : null}
+
+                {telemetryError ? (
+                  <Text style={styles.overlayError}>
+                    {telemetryError}
+                    {telemetry ? " Dữ liệu hiển thị có thể đã cũ." : ""}
+                  </Text>
+                ) : null}
+
+                <View style={styles.overlayActions}>
+                  <TouchableOpacity
+                    style={styles.overlayPrimaryButton}
+                    onPress={() => onOpenNode(scannedNode)}
+                  >
+                    <Text style={styles.overlayButtonText}>
+                      Xem chi tiết
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.overlaySecondaryButton}
+                    onPress={handleScanAnother}
+                  >
+                    <Text style={styles.overlayButtonText}>
+                      Quét mã khác
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          ) : (
+            <View style={styles.overlayHint}>
+              <Text style={styles.hintText}>
+                {isResolving
+                  ? "Đang tra cứu Marker..."
+                  : "Đưa Marker vào khung quét"}
+              </Text>
+            </View>
+          )}
         </View>
       ) : (
         <View style={styles.permissionBox}>
-          <Text style={styles.permTitle}>Chưa có quyền sử dụng Camera</Text>
-          <Text style={styles.permDesc}>
-            Cấp quyền camera để quét trực tiếp mã trên thiết bị hoặc nhập mã thủ
-            công bên dưới.
+          <Text style={styles.permTitle}>
+            Chưa có quyền sử dụng Camera
           </Text>
+
+          <Text style={styles.permDesc}>
+            Cấp quyền camera để quét trực tiếp mã trên thiết bị hoặc nhập mã
+            thủ công bên dưới.
+          </Text>
+
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => void ensureCameraPermission()}
           >
             <Text style={styles.primaryBtnText}>Xin quyền Camera</Text>
           </TouchableOpacity>
+
           {canShowSettingsButton ? (
             <TouchableOpacity
               style={styles.secondaryBtn}
               onPress={() => void openDeviceSettings()}
             >
-              <Text style={styles.secondaryBtnText}>Mở Cài đặt thiết bị</Text>
+              <Text style={styles.secondaryBtnText}>
+                Mở Cài đặt thiết bị
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -114,7 +281,9 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
       {isResolving ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color="#0284c7" />
-          <Text style={styles.loadingText}>Đang kiểm tra thông tin Node...</Text>
+          <Text style={styles.loadingText}>
+            Đang kiểm tra thông tin Node...
+          </Text>
         </View>
       ) : null}
 
@@ -127,17 +296,24 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
         >
           <Text style={styles.feedbackTitle}>{feedback.title}</Text>
           <Text style={styles.feedbackMsg}>{feedback.message}</Text>
+
           <View style={styles.feedbackActions}>
             {canRetry ? (
-              <TouchableOpacity style={styles.smallBtn} onPress={retryLastScan}>
+              <TouchableOpacity
+                style={styles.smallBtn}
+                onPress={retryLastScan}
+              >
                 <Text style={styles.smallBtnText}>Thử lại</Text>
               </TouchableOpacity>
             ) : null}
+
             <TouchableOpacity
               style={styles.smallBtnOutline}
               onPress={dismissFeedback}
             >
-              <Text style={styles.smallBtnOutlineText}>Quét mã khác</Text>
+              <Text style={styles.smallBtnOutlineText}>
+                Quét mã khác
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -146,16 +322,17 @@ export function ScannerScreen({ onOpenNode }: ScannerScreenProps) {
       <View style={styles.manualRow}>
         <TextInput
           style={styles.manualInput}
-          placeholder="Nhập mã Marker thủ công (vd: MKR-NODE-01)"
+          placeholder="Nhập mã Marker thủ công"
           placeholderTextColor="#94a3b8"
           value={manualCode}
           onChangeText={setManualCode}
           autoCapitalize="characters"
         />
+
         <TouchableOpacity
           style={styles.manualBtn}
           onPress={handleManualLookup}
-          disabled={isResolving}
+          disabled={isResolving || isNavigating}
         >
           <Text style={styles.primaryBtnText}>Tra cứu</Text>
         </TouchableOpacity>
@@ -176,6 +353,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
     marginTop: 24,
+    gap: 8,
+  },
+  headerInfo: {
+    flex: 1,
   },
   headerTitle: {
     color: "#f8fafc",
@@ -198,7 +379,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   cameraWrapper: {
-    height: 300,
+    height: 360,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#000",
@@ -208,15 +389,73 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 12,
     alignSelf: "center",
-    backgroundColor: "rgba(15,23,42,0.75)",
+    backgroundColor: "rgba(15,23,42,0.85)",
     paddingHorizontal: 14,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 16,
   },
   hintText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
+  },
+  nodeOverlay: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    bottom: 8,
+    maxHeight: "75%",
+    backgroundColor: "rgba(15,23,42,0.92)",
+    borderRadius: 12,
+    padding: 12,
+  },
+  overlayScroll: {
+    flexGrow: 0,
+  },
+  overlayTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  overlayText: {
+    color: "#e2e8f0",
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  metricsText: {
+    color: "#7dd3fc",
+    fontSize: 13,
+    fontWeight: "700",
+    marginVertical: 5,
+  },
+  overlayError: {
+    color: "#fca5a5",
+    fontSize: 12,
+    marginBottom: 5,
+  },
+  overlayActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  overlayPrimaryButton: {
+    backgroundColor: "#0284c7",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  overlaySecondaryButton: {
+    backgroundColor: "#475569",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  overlayButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
   },
   permissionBox: {
     backgroundColor: "#1e293b",

@@ -84,7 +84,10 @@ export function useMarkerScanner(
       try {
         const res = await apiRequest<any>(ENV.ENDPOINTS.MARKER_LOOKUP, {
           method: "GET",
-          query: { code },
+          query: {
+          marker_type: "QR",
+          identifier: code,
+      },
           auth: true,
         });
 
@@ -109,7 +112,23 @@ export function useMarkerScanner(
             code: rawNode.code ? String(rawNode.code) : undefined,
             name: String(rawNode.name ?? rawNode.hostname ?? rawNode.id),
             status: rawNode.status ? String(rawNode.status) : undefined,
-            rack: rawNode.rack ? String(rawNode.rack) : undefined,
+            rack: rawNode.rack?.name ?? rawNode.rack?.code ?? undefined,
+            room:
+  rawNode.rack?.room?.name ??
+  rawNode.rack?.room?.code ??
+  undefined,
+
+site:
+  rawNode.rack?.room?.site?.name ??
+  rawNode.rack?.room?.site?.code ??
+  undefined,
+
+workloads: Array.isArray(rawNode.workloads)
+  ? rawNode.workloads.map(
+      (workload: { name?: string; code?: string }) =>
+        workload.name ?? workload.code ?? "Không có tên",
+    )
+  : [],
             zone: rawNode.zone ? String(rawNode.zone) : undefined,
             ipAddress: rawNode.ipAddress ?? rawNode.ip_address,
             lastTelemetryAt: rawNode.lastTelemetryAt ?? rawNode.last_telemetry_at,
