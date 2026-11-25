@@ -1,59 +1,86 @@
-# Collector Agent — CPU, RAM và Disk Telemetry
+# AR-IMMS Collector Agent
 
-## 1. Mục đích
+Collector Agent thu thập CPU, RAM và Disk trên máy chạy Agent rồi gửi telemetry
+đến backend theo chu kỳ.
 
-Collector Agent là chương trình Python chạy trên máy testbed để thu thập dữ liệu sử dụng tài nguyên hệ thống gồm:
+Hướng dẫn này dành cho phiên bản xác thực bằng **Agent Key qua HTTP**.
 
-- CPU usage (%)
-- RAM usage (%)
-- Disk usage (%)
+## 1. Điều kiện
 
-Agent gửi dữ liệu telemetry về Backend theo chu kỳ cấu hình.
+- Python và pip đã được cài.
+- Backend đã chạy và kết nối đúng database.
+- Database đã seed Node cần giám sát.
+- Backend đã cấu hình `TELEMETRY_AGENT_KEY` và
+  `TELEMETRY_AGENT_NODE_IDS`.
 
-## 2. Cấu trúc
+## 2. Cài đặt
 
-```text
-agent/
-├── agent.py
-├── config.py
-├── requirements.txt
-├── .env.example
-├── .env
-└── README.md
-```
-
-## 3. Yêu cầu môi trường
-
-- Python 3.x
-- Backend đang chạy tại địa chỉ được cấu hình trong `.env`
-- PostgreSQL đã được cấu hình ở Backend
-
-## 4. Cài đặt
-
-Mở Terminal tại thư mục `agent`:
+Từ thư mục gốc dự án:
 
 ```powershell
-python -m pip install -r requirements.txt
+cd agent
+python -m venv .venv
+& ".\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
-Kiểm tra dependencies:
+Kiểm tra:
 
 ```powershell
-python -c "import psutil, requests, dotenv; print('Agent dependencies OK')"
+& ".\.venv\Scripts\python.exe" -c "import psutil, requests, dotenv; print('Agent dependencies: OK')"
 ```
 
-## 5. Cấu hình
+Mỗi máy tự tạo `.venv`; không đưa `.venv` lên Git.
 
-Tạo file `.env` từ `.env.example` và cấu hình các biến:
+## 3. Lấy Node ID
+
+Trong pgAdmin, chọn database backend đang dùng và chạy:
+
+```sql
+SELECT id, code, name
+FROM nodes
+ORDER BY code;
+```
+
+Copy UUID trong cột `id` của Node cần giám sát. Không dùng mã
+`DEMO-NODE-01` thay cho UUID.
+
+## 4. Cấu hình backend
+
+Backend cần có các biến:
 
 ```env
-BACKEND_URL=http://localhost:5000
+TELEMETRY_AGENT_KEY=KEY_BI_MAT
+TELEMETRY_AGENT_NODE_IDS=UUID_NODE
+```
+
+Nếu backend được chạy bằng `run.bat`, kiểm tra cấu hình trong file mà
+launcher đọc, hiện là `backend-python/.env.migration`.
+
+Có thể tạo key bằng Python tại thư mục `backend-python`:
+
+```powershell
+& ".\.venv\Scripts\python.exe" -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Khởi động lại backend sau khi thay cấu hình.
+
+## 5. Cấu hình Agent
+
+Tại thư mục `agent`, tạo file cá nhân:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Ví dụ:
+
+```env
+BACKEND_URL=http://localhost:5002
 TELEMETRY_ENDPOINT=/telemetry
 
-NODE_ID=
-DATABASE_URL=
-JWT_SECRET=
-AUTH_TOKEN=
+NODE_ID=UUID_NODE
+AGENT_KEY=KEY_BI_MAT
 
 SEND_INTERVAL_SECONDS=5
 REQUEST_TIMEOUT_SECONDS=5
@@ -61,108 +88,57 @@ MAX_RETRIES=3
 RETRY_DELAY_SECONDS=2
 ```
 
-Không commit file `.env` lên Git vì file này chứa thông tin cấu hình và thông tin xác thực.
+- `BACKEND_URL` phải khớp địa chỉ backend đang chạy.
+- `NODE_ID` phải nằm trong `TELEMETRY_AGENT_NODE_IDS` của backend.
+- `AGENT_KEY` phải giống `TELEMETRY_AGENT_KEY` của backend.
+- Không đưa mật khẩu PostgreSQL hoặc JWT secret vào Agent.
+
+Nếu backend ở máy khác, `localhost` không trỏ tới máy backend; cần dùng địa chỉ
+và cấu hình mạng phù hợp. HTTP + Agent Key trong ví dụ này dành cho môi trường
+kiểm thử nội bộ, không đưa key qua mạng không tin cậy.
 
 ## 6. Chạy Agent
-
-Đảm bảo Backend đang chạy trước.
 
 Tại thư mục `agent`:
 
 ```powershell
-python agent.py
+.\run.bat
 ```
 
-Khi chạy thành công, Agent sẽ hiển thị thông tin thu thập CPU, RAM và Disk, sau đó gửi telemetry về Backend.
+Hoặc:
 
-Ví dụ:
-
-```text
-Collector Agent started.
-Backend=http://localhost:5000/telemetry | interval=5.0s
-Collected telemetry: CPU=23.10%, RAM=76.70%, Disk=77.90%
-Telemetry sent successfully: message_id=...
+```powershell
+& ".\.venv\Scripts\python.exe" agent.py
 ```
 
-## 7. Cơ chế gửi dữ liệu
+Giữ terminal mở. Dừng bằng `Ctrl + C`.
 
-Mỗi telemetry message có:
+## 7. Kiểm tra dữ liệu
 
-- `message_id`: UUID duy nhất cho message
-- `node_id`: định danh Node
-- `measured_at`: thời điểm đo
-- `cpu_percent`: CPU usage (%)
-- `memory_percent`: RAM usage (%)
-- `disk_percent`: Disk usage (%)
-
-Agent sử dụng HTTP POST để gửi dữ liệu đến:
-
-```text
-POST /telemetry
-```
-
-## 8. Timeout và Retry
-
-Agent được cấu hình:
-
-```env
-REQUEST_TIMEOUT_SECONDS=5
-MAX_RETRIES=3
-RETRY_DELAY_SECONDS=2
-```
-
-Nếu kết nối Backend thất bại, Agent thử lại tối đa 3 lần.
-
-Mỗi lần retry sử dụng cùng `message_id` và `measured_at` của telemetry message đó.
-
-## 9. Kiểm tra dữ liệu trong Database
-
-Telemetry được lưu trong bảng:
-
-```text
-node_telemetry
-```
-
-Có thể kiểm tra các bản ghi mới nhất bằng PostgreSQL:
+Trong pgAdmin:
 
 ```sql
-SELECT
-    message_id,
-    node_id,
-    measured_at,
-    cpu_percent,
-    memory_percent,
-    disk_percent,
-    received_at
+SELECT node_id, measured_at, received_at,
+       cpu_percent, memory_percent, disk_percent
 FROM node_telemetry
 ORDER BY received_at DESC
 LIMIT 5;
 ```
 
-## 10. Dừng Agent
+Nếu `received_at` liên tục cập nhật, backend đang lưu telemetry mới.
 
-Trong Terminal đang chạy Agent:
+Để tạo cảnh báo còn cần rule đang bật và Alert Worker chạy riêng. Xem
+[README Backend](../backend-python/README.md).
 
-```text
-Ctrl + C
-```
+## 8. Lỗi thường gặp
 
-## 11. Kết quả kiểm thử
+| Lỗi | Cách kiểm tra |
+| --- | --- |
+| Chưa có `.venv` | Tạo venv và cài dependencies trong thư mục `agent`. |
+| Chưa cấu hình `AGENT_KEY` | Kiểm tra `agent/.env` có key và đã lưu file. |
+| HTTP 401 | Đối chiếu Agent Key với key backend thực sự đang đọc. |
+| HTTP 403 | Kiểm tra `NODE_ID` có nằm trong danh sách backend cho phép. |
+| Connection refused | Kiểm tra backend đang chạy và `BACKEND_URL` đúng host/cổng. |
+| Không có Alert | Kiểm tra telemetry mới, rule đang bật và Alert Worker. |
 
-Agent đã được kiểm thử trên máy testbed với kết quả:
-
-- Thu thập được CPU thực tế.
-- Thu thập được RAM thực tế.
-- Thu thập được Disk thực tế.
-- Gửi telemetry thành công đến Backend.
-- Backend lưu dữ liệu vào PostgreSQL.
-- Mỗi message có `message_id` riêng.
-- Dữ liệu trong `node_telemetry` có đầy đủ thời gian đo và các chỉ số CPU/RAM/Disk.
-
-Ví dụ dữ liệu kiểm thử:
-
-```text
-CPU: 22.4%
-RAM: 77.2%
-Disk: 79.8%
-```
+Không commit `.env`, `.venv` hoặc Agent Key lên Git.
