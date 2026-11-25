@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-
+import { ApiError } from "@/lib/api-client";
 import { getAssets } from "@/lib/assets";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -63,6 +63,8 @@ export default function TicketsPage() {
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<TicketDetail | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
+  const [nodeFilter, setNodeFilter] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -83,10 +85,20 @@ export default function TicketsPage() {
   const isTechnician = role === "Technician";
 
   const visibleTickets = useMemo(
-    () => tickets.filter(
-      (ticket) => !statusFilter || ticket.status === statusFilter,
-    ),
-    [tickets, statusFilter],
+  () =>
+    tickets.filter((ticket) => {
+      const matchesStatus =
+        !statusFilter || ticket.status === statusFilter;
+
+      const matchesNode =
+        !nodeFilter || ticket.node_id === nodeFilter;
+
+      const matchesAssignee =
+        !assigneeFilter || ticket.assigned_to === assigneeFilter;
+
+      return matchesStatus && matchesNode && matchesAssignee;
+    }),
+    [tickets, statusFilter, nodeFilter, assigneeFilter],
   );
 
   const matchingAlerts = useMemo(
@@ -221,9 +233,15 @@ useEffect(() => {
         setSelectedTicketId("");
       }
       setNotice(successMessage);
-    } catch (actionError) {
-      setError(getErrorMessage(actionError));
-    } finally {
+} catch (actionError) {
+  if (actionError instanceof ApiError && actionError.status === 409) {
+    setError(
+      "Không thể hoàn tất thao tác vì Ticket đã thay đổi hoặc không còn ở trạng thái phù hợp. Hãy làm mới và kiểm tra lại trước khi thử lại.",
+    );
+  } else {
+    setError(getErrorMessage(actionError));
+  }
+} finally {
       setBusy(false);
     }
   }
@@ -388,7 +406,7 @@ useEffect(() => {
               </h2>
               <p className="mt-1 text-sm text-slate-500">
                 {isTechnician
-                  ? "Chỉ hiển thị Ticket được phân công cho bạn."
+                  ? "Ticket đã thay đổi hoặc không còn ở trạng thái phù hợp. Hãy sao chép nội dung chưa lưu, tải lại trang rồi kiểm tra trước khi thử lại."
                   : "Tra cứu toàn bộ Ticket trong hệ thống."}
               </p>
             </div>
@@ -405,6 +423,43 @@ useEffect(() => {
                 ))}
               </select>
             </label>
+            <label className="text-sm text-slate-700">
+  Node
+  <select
+    value={nodeFilter}
+    onChange={(event) => setNodeFilter(event.target.value)}
+    className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-2"
+  >
+    <option value="">Tất cả</option>
+    {assets.map((asset) => (
+      <option key={asset.id} value={asset.id}>
+        {asset.code}
+      </option>
+    ))}
+  </select>
+</label>
+
+{isOperator && (
+  <label className="text-sm text-slate-700">
+    Người phụ trách
+    <select
+      value={assigneeFilter}
+      onChange={(event) => setAssigneeFilter(event.target.value)}
+      className="ml-2 rounded-lg border border-slate-300 bg-white px-2 py-2"
+    >
+      <option value="">Tất cả</option>
+      {[...new Set(
+        tickets
+          .map((ticket) => ticket.assigned_to)
+          .filter((id): id is string => Boolean(id)),
+      )].map((id) => (
+        <option key={id} value={id}>
+          {technicians.find((technician) => technician.id === id)?.email ?? id}
+        </option>
+      ))}
+    </select>
+  </label>
+)}
           </div>
 
           {loading && (
@@ -705,7 +760,7 @@ useEffect(() => {
                 </div>
               )}
 
-              {selectedTicket.status === "PENDING_APPROVAL" && (
+              {(selectedTicket.work_notes || selectedTicket.evidence) && (
                 <div className="rounded-lg border border-slate-200 p-3 text-sm text-slate-600">
                   <p>
                     <span className="font-medium">Tiến độ:</span>{" "}
@@ -750,7 +805,7 @@ useEffect(() => {
                             : ""}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {formatDate(item.created_at)} · {item.actor_id}
+                          {formatDate(item.created_at)} · {item.actor_email ?? item.actor_id}
                         </p>
                         {item.note && (
                           <p className="mt-1 text-slate-600">{item.note}</p>
